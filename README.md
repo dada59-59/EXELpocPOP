@@ -6,4 +6,11 @@ exemple de resultat popintro.asm / .rom
 
 EXLCHAR => création d'animation en mode semi graphique, charger les fichier exlchar_session.json pour un exemple d'animation, exemple de resultat popengine.asm / .rom
 
+la vitesse de l'animation est environ 2x fois plus rapide sur un exeltel que dans l'émulateur DCexel
+
 pop.rom est un assemblage de l'image d'intro, de music, de l'engine
+
+
+
+https://www.youtube.com/shorts/B3rTEwCRKDw
+
