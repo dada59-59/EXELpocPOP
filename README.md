@@ -10,7 +10,7 @@ la vitesse de l'animation est environ 2x fois plus rapide sur un exeltel que dan
 
 pop.rom est un assemblage de l'image d'intro, de music, de l'engine
 
+[
 
-
-https://www.youtube.com/shorts/B3rTEwCRKDw
+https://www.youtube.com/shorts/B3rTEwCRKDw](https://youtube.com/shorts/1qK6EUUSlUY?si=166S8-UUlQHUGtfY)
 
