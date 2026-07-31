@@ -1,0 +1,3293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>EXLCHAR v11 — EXL100 Sprite & Animation Editor</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#141414;color:#e8e8e8;font-family:'Share Tech Mono','Courier New',monospace;font-size:12px;overflow:hidden}
+.app{display:flex;flex-direction:column;height:100vh}
+
+/* Title */
+.title-bar{display:flex;align-items:center;gap:12px;background:#1a1a1a;border-bottom:1px solid #333;padding:4px 12px;flex-shrink:0}
+.title-bar h1{font-family:'VT323',monospace;font-size:24px;color:#fff;letter-spacing:3px}
+.title-bar .sub{color:#888;font-size:10px}
+.tab-bar{display:flex;gap:2px;margin-left:auto}
+.tab{padding:3px 10px;border:1px solid #444;background:transparent;color:#888;font-family:'Share Tech Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:1px}
+.tab:hover{color:#ccc;border-color:#666}
+.tab.active{background:#2a2a2a;color:#fff;border-color:#aaa}
+
+/* Strip */
+.top-strip{background:#1a1a1a;border-bottom:1px solid #333;padding:4px 8px;flex-shrink:0}
+.strip-label{color:#888;font-size:9px;margin-bottom:3px;letter-spacing:1px}
+.strip-scroll{overflow-x:auto;overflow-y:hidden;white-space:nowrap}
+.strip-chars{display:flex;gap:2px;width:max-content}
+.strip-char{width:20px;height:24px;cursor:pointer;border:1px solid #2a2a2a;background:#111;position:relative;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.strip-char:hover{border-color:#666}
+.strip-char.sel-group{border-color:#fff;background:#1e1e1e}
+.strip-char.defined{background:#1a1a1a}
+.strip-char canvas{image-rendering:pixelated;display:block}
+.strip-char .cnum{position:absolute;bottom:1px;right:1px;font-size:6px;color:#555}
+.strip-slider{display:flex;align-items:center;gap:8px;margin-top:3px}
+.strip-slider input[type=range]{flex:1;accent-color:#aaa;height:3px;cursor:pointer}
+.strip-slider span{font-size:9px;color:#888;min-width:30px}
+
+/* Main area */
+.main-area{display:flex;flex:1;overflow:hidden;min-height:0}
+
+/* Char editor */
+.editor-panel{display:none;flex:1;flex-direction:row;min-width:0;overflow:hidden}
+.editor-panel.active{display:flex}
+.grid-zone{flex:1;background:#181818;border-right:1px solid #333;padding:8px;overflow:hidden;display:flex;flex-direction:column;gap:5px}
+.grid-header{display:flex;align-items:center;gap:10px;flex-shrink:0;font-size:9px;color:#888}
+.char-grid{display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(8,1fr);gap:4px;flex:1;min-height:0}
+.char-cell{background:#111;border:1px solid #252525;cursor:pointer;display:flex;flex-direction:column;user-select:none;overflow:hidden}
+.char-cell:hover{border-color:#555}
+.char-cell.active{border-color:#fff;box-shadow:0 0 4px rgba(255,255,255,.2)}
+.cell-hdr{font-size:8px;color:#555;padding:1px 3px;background:#1a1a1a;border-bottom:1px solid #222;flex-shrink:0;display:flex;justify-content:space-between}
+.pixel-grid{display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(10,1fr);gap:1px;padding:2px;flex:1;min-height:0}
+.pixel{cursor:crosshair;border:.5px solid #1e1e1e;background:var(--bg-color,#111);min-width:0;min-height:0}
+.pixel.on{background:var(--fg-color,#e8e8e8)!important}
+.slider-row{display:flex;align-items:center;gap:6px;flex-shrink:0;font-size:9px;color:#888}
+.slider-row input[type=range]{flex:1;accent-color:#aaa;height:3px}
+.layout-btn{background:transparent;border:1px solid #333;color:#888;font-family:'Share Tech Mono',monospace;font-size:9px;padding:2px 6px;cursor:pointer}
+.layout-btn:hover{color:#e8e8e8;border-color:#aaa}
+
+/* Side panel */
+.side-panel{width:220px;flex-shrink:0;background:#181818;padding:6px;display:flex;flex-direction:column;gap:6px;overflow-y:auto}
+.psec{border:1px solid #2a2a2a;padding:6px}
+.ptitle{color:#888;font-size:9px;letter-spacing:1px;border-bottom:1px solid #222;padding-bottom:3px;margin-bottom:5px}
+.pval{font-family:'VT323',monospace;font-size:20px;color:#fff}
+.pval-sm{font-size:11px;color:#e8e8e8}
+.name-in{width:100%;background:#111;border:1px solid #333;color:#e8e8e8;font-family:'Share Tech Mono',monospace;font-size:10px;padding:2px 4px;margin-top:3px}
+.name-in:focus{outline:none;border-color:#aaa}
+.color-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-top:4px}
+.cswatch{height:20px;cursor:pointer;border:1px solid #333;font-size:7px;font-weight:bold;display:flex;align-items:center;justify-content:center}
+.cswatch.sel{outline:2px solid #fff;outline-offset:1px}
+.prev-row{display:flex;gap:6px;align-items:center;margin-top:4px;background:#111;padding:4px;border:1px solid #222}
+.prev-row canvas{image-rendering:pixelated}
+.btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-top:3px}
+.btn{background:transparent;border:1px solid #444;color:#ccc;font-family:'Share Tech Mono',monospace;font-size:9px;padding:4px 3px;cursor:pointer;letter-spacing:.5px}
+.btn:hover{background:#2a2a2a;border-color:#aaa;color:#fff}
+.btn-full{grid-column:span 2}
+.btn-amber{border-color:#665500;color:#ffcc44}
+.btn-amber:hover{background:#2a2000;border-color:#ffcc44}
+.asm-out{font-size:8px;color:#888;white-space:pre-wrap;word-break:break-all;line-height:1.5;max-height:60px;overflow-y:auto;margin-top:3px}
+
+/* Group Preview */
+.gprv-wrap{background:#111;border:1px solid #222;padding:4px;display:inline-block;margin-top:4px}
+
+/* Animation panel */
+.anim-panel{display:none;flex:1;flex-direction:row;min-width:0;overflow:hidden}
+.anim-panel.active{display:flex}
+.anim-left{flex:1;display:flex;flex-direction:column;border-right:1px solid #333;overflow:hidden}
+.anim-right{width:260px;flex-shrink:0;background:#181818;padding:8px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+.anim-list-header{display:flex;align-items:center;gap:6px;padding:5px 8px;background:#1a1a1a;border-bottom:1px solid #333;flex-shrink:0;flex-wrap:wrap}
+.anim-list{flex:1;overflow-y:auto;padding:6px}
+.anim-item{border:1px solid #2a2a2a;margin-bottom:6px;background:#111}
+.anim-item.selected{border-color:#fff}
+.anim-item-hdr{display:flex;align-items:center;gap:6px;padding:4px 6px;cursor:pointer;background:#1a1a1a;font-size:10px}
+.anim-item-hdr:hover{background:#222}
+.anim-name{color:#fff;flex:1;font-size:11px}
+.anim-meta{color:#666;font-size:9px}
+.anim-frames{padding:6px;display:flex;gap:4px;flex-wrap:wrap}
+.frame-chip{border:1px solid #333;padding:3px 6px;font-size:9px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;background:#1a1a1a;position:relative}
+.frame-chip:hover{border-color:#aaa}
+.frame-chip.sel-frame{border-color:#ffcc44;background:#1a1400}
+.frame-chip canvas{image-rendering:pixelated}
+.frame-chip .fdur{font-size:8px;color:#666}
+.frame-chip .fdel{position:absolute;top:1px;right:2px;font-size:8px;color:#ff5555;cursor:pointer;display:none}
+.frame-chip:hover .fdel{display:block}
+.anim-timeline{display:flex;gap:3px;align-items:center;padding:6px 8px;background:#111;border-top:1px solid #333;flex-shrink:0;overflow-x:auto}
+.tl-frame{width:28px;min-height:40px;border:1px solid #333;background:#1a1a1a;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tl-frame.playing{border-color:#fff}
+.tl-frame canvas{image-rendering:pixelated}
+.anim-preview{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px;background:#111;border-bottom:1px solid #333;flex-shrink:0}
+.preview-screen{image-rendering:pixelated;border:1px solid #333}
+.play-controls{display:flex;gap:6px;align-items:center}
+.play-btn{background:transparent;border:1px solid #444;color:#e8e8e8;font-family:'VT323',monospace;font-size:18px;padding:2px 10px;cursor:pointer;min-width:36px}
+.play-btn:hover{background:#2a2a2a}
+
+/* Level editor panel */
+.level-panel{display:none;flex:1;flex-direction:row;min-width:0;overflow:hidden}
+.level-panel.active{display:flex}
+/* Sprite import panel */
+.sprite-panel{display:none;flex:1;flex-direction:row;min-width:0;overflow:hidden}
+.sprite-panel.active{display:flex}
+.sprite-left{width:320px;border-right:1px solid #333;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.sprite-right{flex:1;padding:8px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+.sprite-canvas-wrap{position:relative;background:#000;border:1px solid #333;overflow:hidden;cursor:crosshair;user-select:none}
+#sprite-src-canvas{image-rendering:pixelated;display:block}
+#sprite-grid-overlay{position:absolute;top:0;left:0;pointer-events:none}
+.sprite-result-wrap{background:#000;border:1px solid #333;overflow:hidden}
+#sprite-result-canvas{image-rendering:pixelated;display:block}
+.coord-badge{font-size:9px;color:#ffcc44;font-family:'VT323',monospace}
+.nudge-row{display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin-bottom:4px}
+
+/* Drop zone */
+.drop-zone{border:2px dashed #333;padding:12px;text-align:center;color:#888;font-size:10px;cursor:pointer;margin-top:4px;border-radius:2px}
+.drop-zone:hover,.drop-zone.drag-over{border-color:#aaa;color:#e8e8e8;background:#1e1e1e}
+input[type=file]{display:none}
+
+/* Scrollbars */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:#111}
+::-webkit-scrollbar-thumb{background:#333}
+::-webkit-scrollbar-thumb:hover{background:#555}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+<!-- Title bar -->
+<div class="title-bar">
+  <h1>EXLCHAR</h1>
+  <span class="sub">EXL100 Sprite &amp; Animation Editor v11</span>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+    <span id="autosave-info" style="font-size:9px;color:#555"></span>
+    <button class="btn" id="btn-save-json" style="font-size:9px;padding:2px 8px">SAVE JSON</button>
+    <button class="btn" id="btn-load-json" style="font-size:9px;padding:2px 8px">LOAD JSON</button>
+    <input type="file" id="json-file-in" accept=".json" style="display:none">
+    <button class="btn" id="btn-load-prev" style="font-size:9px;padding:2px 8px;color:#888">RESTORE</button>
+  </div>
+  <div class="tab-bar">
+    <button class="tab active" onclick="switchTab('editor')">CHAR EDITOR</button>
+    <button class="tab" onclick="switchTab('anim')">ANIMATION</button>
+    <button class="tab" onclick="switchTab('sprite')">SPRITE IMPORT</button>
+    <button class="tab" onclick="switchTab('level')">LEVEL EDITOR</button>
+  </div>
+</div>
+
+<!-- Char strip (char editor only) -->
+<div class="top-strip" id="strip-bar">
+  <div class="strip-label">CHAR GENERATOR — 128 SLOTS</div>
+  <div class="strip-scroll"><div class="strip-chars" id="strip"></div></div>
+  <div class="strip-slider">
+    <span>group</span>
+    <input type="range" id="strip-slider" min="0" max="120" step="8" value="0">
+    <span id="strip-label2">$00</span>
+    <label style="display:flex;align-items:center;gap:3px;font-size:9px;color:#888;cursor:pointer">
+      <input type="checkbox" id="col-major-check" checked style="accent-color:#aaa"> col-maj
+    </label>
+  </div>
+</div>
+
+<!-- Main area -->
+<div class="main-area">
+
+  <!-- ══ CHAR EDITOR ══ -->
+  <div class="editor-panel active" id="panel-editor">
+    <div class="grid-zone">
+      <div class="grid-header">
+        <span id="grid-label" style="color:#fff;font-size:10px">GROUP $00–$1F</span>
+        <button class="layout-btn" onclick="clearGroup()">CLR GROUP</button>
+        <button class="layout-btn" onclick="invertGroup()">INV GROUP</button>
+        <button class="layout-btn" id="btn-import-img" onclick="document.getElementById('img-file').click()">IMPORT IMG</button>
+        <input type="file" id="img-file" accept="image/*">
+      </div>
+      <div class="char-grid" id="char-grid"></div>
+    </div>
+    <div class="side-panel">
+      <div class="psec">
+        <div class="ptitle">SELECTED CHAR</div>
+        <div class="pval" id="sel-idx">$00</div>
+        <div class="pval-sm" id="sel-pos">col 0 row 0</div>
+        <input class="name-in" id="char-name-in" placeholder="char name..." maxlength="16">
+      </div>
+      <div class="psec">
+        <div class="ptitle">PIXEL EDITOR</div>
+        <canvas id="big-pixel-editor" width="128" height="160" style="image-rendering:pixelated;cursor:crosshair;width:128px;height:160px;border:1px solid #222;display:block"></canvas>
+        <div class="slider-row" style="margin-top:4px">
+          <span>FG</span>
+          <div class="color-grid" id="fg-grid"></div>
+        </div>
+        <div class="slider-row" style="margin-top:4px">
+          <span>BG</span>
+          <div class="color-grid" id="bg-grid"></div>
+        </div>
+      </div>
+      <div class="psec">
+        <div class="ptitle">GROUP PREVIEW</div>
+        <div class="gprv-wrap"><canvas id="group-preview" width="32" height="80" style="image-rendering:pixelated;width:64px;height:160px"></canvas></div>
+      </div>
+      <div class="psec">
+        <div class="ptitle">IMPORT FROM IMAGE</div>
+        <div id="import-info" style="font-size:9px;color:#888;margin-bottom:4px">drop image above</div>
+        <div style="display:flex;gap:4px;align-items:center;margin-bottom:4px">
+          <span style="font-size:9px;color:#888">thresh</span>
+          <input type="range" id="threshold" min="0" max="255" value="128" style="flex:1;accent-color:#aaa;height:3px" oninput="document.getElementById('thresh-val').textContent=this.value;if(importImg)previewImport()">
+          <span id="thresh-val" style="font-size:9px;color:#e8e8e8;min-width:24px">128</span>
+          <label style="font-size:9px;color:#888;cursor:pointer;display:flex;align-items:center;gap:2px">
+            <input type="checkbox" id="import-invert" onchange="if(importImg)previewImport()" style="accent-color:#aaa"> inv
+          </label>
+        </div>
+        <canvas id="import-preview" style="display:none;image-rendering:pixelated;border:1px solid #222;margin-bottom:4px"></canvas>
+        <button class="btn btn-full" id="btn-apply-import">APPLY IMPORT</button>
+      </div>
+      <div class="psec">
+        <div class="ptitle">CHAR EXPORT</div>
+        <div class="btn-grid">
+          <button class="btn btn-full" id="btn-export">EXPORT .H FILE</button>
+        </div>
+      </div>
+      <div style="font-size:8px;color:#555;padding:4px">v5 · raw cell anim · white theme</div>
+    </div>
+  </div>
+
+  <!-- ══ ANIMATION PANEL ══ -->
+  <div class="anim-panel" id="panel-anim">
+    <div class="anim-left">
+      <!-- Preview -->
+      <div class="anim-preview">
+        <canvas class="preview-screen" id="anim-canvas" width="320" height="200" style="width:100%;max-width:640px;height:200px"></canvas>
+        <div class="play-controls">
+          <button class="play-btn" id="btn-prev-frame">◀</button>
+          <button class="play-btn" id="btn-play">▶</button>
+          <button class="play-btn" id="btn-next-frame">▶|</button>
+          <span id="play-status" style="font-size:9px;color:#888">frame 0/0</span>
+        </div>
+      </div>
+      <!-- Timeline -->
+      <div class="anim-timeline" id="anim-timeline">
+        <span style="font-size:9px;color:#666">select animation</span>
+      </div>
+      <!-- Anim list -->
+      <div style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+        <div class="anim-list-header">
+          <span style="font-size:10px;color:#fff">ANIMATIONS</span>
+          <input class="name-in" id="new-anim-name-in" value="WALK_LEFT" style="width:90px;font-size:9px">
+          <button class="btn" style="padding:2px 8px" onclick="
+            var nm=document.getElementById('new-anim-name-in').value.trim()||'ANIM';
+            animations.push({name:nm,frames:[],x_advance:-2,loop:true,key:'NONE',isDefault:animations.length===0});
+            selAnim=animations.length-1;selFrame=-1;
+            buildAnimList();updateAnimProps();buildTimeline();scheduleSave();">+ NEW</button>
+          <label style="font-size:9px;color:#aaa;display:flex;align-items:center;gap:2px">row<input class="name-in" id="spr-row-in" type="number" min="0" max="17" value="8" style="width:38px;font-size:9px" title="Sprite top row on screen (0-17)"></label>
+          <button class="btn btn-amber" id="btn-export-walkman" style="padding:2px 8px">EXPORT ASM</button>
+          <label style="font-size:8px;color:#888;display:inline-flex;align-items:center;gap:3px" title="Engine displays VALUE0 (keyboard register) as 2 hex digits at top-right — reveals what the emulator injects at idle"><input type="checkbox" id="dbg-key-chk">key debug</label>
+          <button class="btn" id="btn-frame-movel" style="padding:2px 6px" title="Move this frame one position earlier in the animation">◀ MOVE</button>
+          <button class="btn" id="btn-frame-mover" style="padding:2px 6px" title="Move this frame one position later in the animation">MOVE ▶</button>
+          <button class="btn" id="btn-frame-dup" style="padding:2px 8px;border-color:#1a6a3a;color:#66dd99" title="Duplicate this frame right after itself (following frames shift right)">DUP+</button>
+          <button class="btn" id="btn-frame-copy" style="padding:2px 8px;border-color:#1a5a6a;color:#66ccdd">COPY→END</button>
+          <select class="name-in" id="frame-copyto-sel" style="width:88px" title="Target animation"></select>
+          <button class="btn" id="btn-frame-copyto" style="padding:2px 8px;border-color:#5a5a1a;color:#dddd66" title="Append a copy of this frame to the end of the selected animation">COPY TO→</button>
+          <button class="btn" id="btn-import-anim" style="padding:2px 8px">IMPORT .H</button>
+          <input type="file" id="anim-file-in" accept=".h,.asm,.txt" style="display:none">
+        </div>
+        <div class="anim-list" id="anim-list"><div style="font-size:9px;color:#666;padding:8px">No animations — click + NEW</div></div>
+      </div>
+    </div>
+    <div class="anim-right">
+      <div class="psec" id="anim-props-empty"><div style="font-size:9px;color:#666">select an animation</div></div>
+      <div class="psec" id="anim-props" style="display:none">
+        <div class="ptitle">ANIMATION</div>
+        <input class="name-in" id="anim-name-in" placeholder="name">
+        <div style="display:flex;gap:4px;margin-top:4px;align-items:center">
+          <span style="font-size:9px;color:#888">x_adv</span>
+          <input class="name-in" id="anim-x-advance" type="number" value="-2" style="width:50px;margin-top:0">
+          <label style="font-size:9px;color:#888;display:flex;align-items:center;gap:3px;cursor:pointer">
+            <input type="checkbox" id="anim-loop" checked style="accent-color:#aaa"> loop
+          </label>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px;font-size:9px;color:#888">
+          <div>trigger key
+            <select id="anim-key-sel" style="width:100%;background:#111;color:#e8e8e8;border:1px solid #333;font-family:Share Tech Mono,monospace;font-size:9px;padding:2px;margin-top:2px">
+              <option value="NONE">NONE (default/idle)</option>
+              <option value="LEFT">← LEFT / A a ($83/$61)</option>
+              <option value="RIGHT">→ RIGHT / R r ($81/$72)</option>
+              <option value="UP">↑ UP / Z z ($80/$7A)</option>
+              <option value="DOWN">↓ DOWN / S s ($82/$73)</option>
+              <option value="SPACE">SPACE ($20)</option>
+              <option value="ENTER">ENTER ($0D)</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:flex;align-items:center;gap:4px;margin-top:14px;cursor:pointer">
+              <input type="checkbox" id="anim-default-chk" style="accent-color:#aaa">
+              default state
+            </label>
+          </div>
+        </div>
+        <button class="btn btn-full" id="btn-del-anim" style="margin-top:6px;border-color:#553333;color:#ff7777">DELETE</button>
+      </div>
+      <div class="psec" id="frame-props-empty"><div style="font-size:9px;color:#666">select a frame</div></div>
+      <div class="psec" id="frame-props" style="display:none">
+        <div class="ptitle">FRAME <span style="font-weight:normal;color:#888;font-size:8px">— L-click: draw · R-click: erase</span></div>
+        <div style="display:flex;gap:4px;align-items:center;margin-bottom:4px">
+          <select class="name-in" id="fp-zoom" style="width:50px" onchange="fpZoom=+this.value;renderFramePreview()">
+            <option value="2">2×</option><option value="4">4×</option><option value="6" selected>6×</option><option value="8">8×</option>
+          </select>
+          <button class="btn" id="btn-frame-fliph" style="padding:1px 6px;font-size:9px" title="Mirror frame horizontally — e.g. derive WALK_LEFT frames from WALK_RIGHT">FLIP H</button>
+          <button class="btn" id="btn-fp-left"  style="padding:1px 5px;font-size:9px" title="Shift all pixels 1px left">◀</button>
+          <button class="btn" id="btn-fp-right" style="padding:1px 5px;font-size:9px" title="Shift all pixels 1px right">▶</button>
+          <button class="btn" id="btn-fp-up"    style="padding:1px 5px;font-size:9px" title="Shift all pixels 1px up">▲</button>
+          <button class="btn" id="btn-fp-down"  style="padding:1px 5px;font-size:9px" title="Shift all pixels 1px down">▼</button>
+          <button class="btn" id="btn-frame-clear" style="padding:1px 6px;font-size:9px;border-color:#553333;color:#ff7777">CLEAR</button>
+        </div>
+        <div style="max-width:100%;max-height:520px;overflow:auto;margin-bottom:6px">
+          <canvas id="frame-preview" width="32" height="80" style="image-rendering:pixelated;border:1px solid #222;display:block;cursor:crosshair"></canvas>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:9px;color:#888">
+          <div>cols <input class="name-in" id="frame-cols" type="number" min="1" max="8" value="2" style="width:100%;margin-top:2px" oninput="updateFrameProp('cols',+this.value)"></div>
+          <div>rows <input class="name-in" id="frame-rows" type="number" min="1" max="8" value="8" disabled style="width:100%;margin-top:2px;opacity:.5"></div>
+          <div>x_off <input class="name-in" id="frame-xoff" type="number" value="0" style="width:100%;margin-top:2px" oninput="updateFrameProp('x_off',+this.value)"></div>
+          <div>dur <input class="name-in" id="frame-dur" type="number" min="1" value="3" style="width:100%;margin-top:2px" oninput="updateFrameProp('duration',+this.value)"></div>
+        </div>
+        <div style="font-size:9px;color:#888;margin-top:6px">
+          size: <span id="frame-size" style="color:#e8e8e8">2×8 = 16 cells</span>
+          &nbsp;·&nbsp;id: <span id="frame-id" style="color:#ffcc44">#?</span>
+        </div>
+        <button class="btn btn-full" id="btn-del-frame" style="margin-top:6px;border-color:#553333;color:#ff7777">DELETE FRAME</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══ LEVEL EDITOR ══ -->
+  <div class="level-panel" id="panel-level">
+    <div style="display:flex;flex-direction:column;flex:1;min-width:0;overflow:hidden">
+      <!-- Sub-tab bar -->
+      <div style="display:flex;gap:2px;padding:4px 6px 0;background:#141414;flex-shrink:0">
+        <button class="tab active" id="ltab-paint" onclick="switchLevelTab('paint')">PAINT</button>
+        <button class="tab" id="ltab-import" onclick="switchLevelTab('import')">TILE IMPORT</button>
+      </div>
+      <!-- ── PAINT sub-panel ── -->
+      <div id="lpanel-paint" style="display:flex;flex:1;flex-direction:column;padding:6px;gap:6px;overflow:hidden">
+        <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;flex-wrap:wrap">
+          <span style="color:#777;font-size:9px">TILE:</span>
+          <div id="tile-palette" style="display:flex;gap:3px;flex-wrap:wrap"></div>
+          <button class="btn" id="btn-add-tile" style="font-size:9px;padding:2px 6px">+ TILE</button>
+          <button class="btn" id="btn-del-tile" style="font-size:9px;padding:2px 6px;border-color:#553333;color:#ff7777">DEL</button>
+          <button class="btn" id="btn-prune-tiles" style="font-size:9px;padding:2px 6px;border-color:#555533;color:#ffff77" title="Remove all tiles not used in the level grid (EMPTY always kept). Stamp tiles are re-created automatically when stamping.">PRUNE</button>
+          <span style="color:#444;font-size:9px">|</span>
+          <span style="color:#666;font-size:9px">STAMP:</span>
+          <div id="stamp-palette" style="display:flex;gap:3px;flex-wrap:wrap"></div>
+          <span id="sel-tile-label" style="color:#888;font-size:9px;margin-left:4px">selected: EMPTY</span>
+        </div>
+        <div style="flex:1;overflow:auto;background:#111;border:1px solid #222;padding:4px">
+          <canvas id="level-canvas" style="image-rendering:pixelated;cursor:crosshair;display:block"></canvas>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap">
+          <span style="color:#666;font-size:9px">ZOOM:</span>
+          <button class="btn" id="btn-zoom-out" style="font-size:9px;padding:2px 6px">−</button>
+          <span id="zoom-label" style="color:#aaa;font-size:9px;min-width:24px;text-align:center">14</span>
+          <button class="btn" id="btn-zoom-in" style="font-size:9px;padding:2px 6px">+</button>
+          <button class="btn" id="btn-level-clear">CLEAR</button>
+          <button class="btn" id="btn-level-export">EXPORT ASM</button>
+          <button class="btn" id="btn-level-save">SAVE JSON</button>
+          <input type="file" id="level-file-in" accept=".json" style="display:none">
+          <button class="btn" id="btn-level-load">LOAD JSON</button>
+        </div>
+      </div>
+      <!-- ── TILE IMPORT sub-panel ── -->
+      <div id="lpanel-import" style="display:none;flex:1;flex-direction:column;padding:6px;gap:5px;overflow:hidden">
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;flex-wrap:wrap">
+          <input type="file" id="ti-file-in" accept="image/*" style="display:none">
+          <button class="btn" id="btn-ti-load">📁 LOAD IMAGE</button>
+          <span style="color:#666;font-size:9px">thresh:</span>
+          <input type="range" id="ti-thresh" min="0" max="255" value="128" style="width:70px">
+          <span id="ti-thresh-label" style="color:#aaa;font-size:9px;width:24px">128</span>
+          <span style="color:#666;font-size:9px">cell W:</span>
+          <input type="number" id="ti-cell-w" value="8" min="2" max="64" style="width:34px;background:#111;color:#e8e8e8;border:1px solid #333;font-size:9px;padding:1px 2px">
+          <span style="color:#666;font-size:9px">H:</span>
+          <input type="number" id="ti-cell-h" value="10" min="2" max="64" style="width:34px;background:#111;color:#e8e8e8;border:1px solid #333;font-size:9px;padding:1px 2px">
+          <span style="color:#666;font-size:9px">off X:</span>
+          <input type="number" id="ti-off-x" value="0" min="0" max="999" style="width:34px;background:#111;color:#e8e8e8;border:1px solid #333;font-size:9px;padding:1px 2px">
+          <span style="color:#666;font-size:9px">Y:</span>
+          <input type="number" id="ti-off-y" value="0" min="0" max="999" style="width:34px;background:#111;color:#e8e8e8;border:1px solid #333;font-size:9px;padding:1px 2px">
+          <span style="color:#555;font-size:9px">drag to select</span>
+          <span style="color:#444;font-size:9px">|</span>
+          <span style="color:#666;font-size:9px">img zoom:</span>
+          <button class="btn" id="btn-ti-zoom-out" style="font-size:9px;padding:2px 5px">−</button>
+          <span id="ti-zoom-label" style="color:#aaa;font-size:9px;min-width:28px;text-align:center">1×</span>
+          <button class="btn" id="btn-ti-zoom-in" style="font-size:9px;padding:2px 5px">+</button>
+          <button class="btn" id="btn-ti-fit-exl" style="font-size:9px;padding:2px 6px;border-color:#5a5" title="Scale image to EXL100 320×250 screen">FIT EXL100</button>
+        </div>
+        <div style="display:flex;gap:6px;flex:1;overflow:hidden;min-height:0">
+          <!-- Source image with grid overlay + selection -->
+          <div style="flex:1;overflow:auto;background:#0a0a0a;border:1px solid #222;position:relative;min-width:0">
+            <canvas id="ti-src-canvas" style="image-rendering:pixelated;display:block;cursor:crosshair"></canvas>
+          </div>
+          <!-- Right panel: preview + extracted chars -->
+          <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;width:210px;overflow-y:auto">
+            <div style="color:#777;font-size:9px;flex-shrink:0">THRESHOLDED PREVIEW</div>
+            <canvas id="ti-prev-canvas" width="200" height="150" style="image-rendering:pixelated;background:#000;border:1px solid #333;flex-shrink:0"></canvas>
+            <div style="color:#777;font-size:9px;flex-shrink:0">UNIQUE CHARS <span id="ti-char-count" style="color:#aaa">0</span> / used slots: <span id="ti-slots-used" style="color:#aaa">0</span></div>
+            <div id="ti-char-strip" style="display:flex;flex-wrap:wrap;gap:2px;overflow-y:auto;background:#111;padding:3px;border:1px solid #222;flex:1"></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;flex-wrap:wrap">
+          <span style="color:#666;font-size:9px">block name:</span>
+          <input id="ti-block-name" class="inp" value="STONE_WALL" style="width:90px">
+          <span style="color:#666;font-size:9px">attr:</span>
+          <input id="ti-attr" class="inp" value="F8" style="width:32px" title="F8=BAGC3 white, F0=BAGC1 white, E8=BAGC2">
+          <span style="color:#555;font-size:8px">F8=BAGC3 F0=BAGC1</span>
+          <span style="color:#666;font-size:9px">solid:</span>
+          <input type="checkbox" id="ti-solid" style="accent-color:#aaa">
+          <span style="color:#666;font-size:9px">char slot start:</span>
+          <input id="ti-slot-start" class="inp" value="10" style="width:32px" title="hex slot number for first new char">
+          <button class="btn" id="btn-ti-extract" style="border-color:#5a5">EXTRACT → TILE LIBRARY</button>
+          <span id="ti-status" style="color:#888;font-size:9px"></span>
+        </div>
+      </div>
+    </div>
+    <!-- Tile properties side panel -->
+    <div class="side-panel" style="width:180px">
+      <div class="ptitle">TILE</div>
+      <div id="tile-props-empty" style="color:#555;font-size:10px;padding:4px">Select a tile</div>
+      <div id="tile-props" style="display:none;gap:4px;flex-direction:column">
+        <div style="font-size:9px;color:#888">name
+          <input id="tile-name-in" class="inp" style="width:100%;margin-top:2px">
+        </div>
+        <div style="font-size:9px;color:#888">char slot (hex)
+          <input id="tile-char-in" class="inp" style="width:100%;margin-top:2px" placeholder="e.g. 50">
+        </div>
+        <div style="font-size:9px;color:#888">attr byte (hex)
+          <input id="tile-attr-in" class="inp" style="width:100%;margin-top:2px" placeholder="e.g. F8">
+        </div>
+        <div style="font-size:9px;color:#888">solid (blocks movement)
+          <input type="checkbox" id="tile-solid-chk" style="accent-color:#aaa;margin-top:4px">
+        </div>
+        <canvas id="tile-preview" width="24" height="30" style="image-rendering:pixelated;border:1px solid #333;margin-top:4px;background:#000"></canvas>
+      </div>
+      <div style="margin-top:8px" id="stamp-props-section">
+        <div class="ptitle">STAMPS</div>
+        <div id="stamp-list" style="display:flex;flex-direction:column;gap:3px;overflow-y:auto;max-height:200px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SPRITE IMPORT ══ -->
+  <div class="sprite-panel" id="panel-sprite">
+    <div class="sprite-left">
+      <div class="psec">
+        <div class="ptitle">1 · LOAD SCREENSHOT</div>
+        <div id="spr-dropzone" class="drop-zone"
+          onclick="document.getElementById('sprite-file').click()"
+          ondragover="event.preventDefault();this.classList.add('drag-over')"
+          ondragleave="this.classList.remove('drag-over')"
+          ondrop="event.preventDefault();this.classList.remove('drag-over');sprLoadFile(event.dataTransfer.files[0])">
+          📷 CLICK or DROP IMAGE
+        </div>
+        <input type="file" id="sprite-file" accept="image/*">
+        <div id="sprite-info" style="font-size:9px;color:#888;margin-top:4px">no image loaded</div>
+      </div>
+      <div class="psec">
+        <div class="ptitle">2 · POSITION (image moves under grid)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px">
+          <div><div style="font-size:9px;color:#888;margin-bottom:2px">X offset (px)</div>
+            <input class="name-in" id="spr-xoff" type="number" value="0" style="width:100%" oninput="spriteMoved()"></div>
+          <div><div style="font-size:9px;color:#888;margin-bottom:2px">Y offset (px)</div>
+            <input class="name-in" id="spr-yoff" type="number" value="0" style="width:100%" oninput="spriteMoved()"></div>
+          <div><div style="font-size:9px;color:#888;margin-bottom:2px">Cols</div>
+            <input class="name-in" id="spr-cols" type="number" min="1" max="8" value="2" style="width:100%" oninput="spriteMoved()"></div>
+          <div><div style="font-size:9px;color:#888;margin-bottom:2px">Rows (=8)</div>
+            <input class="name-in" id="spr-rows" type="number" value="8" disabled style="width:100%;opacity:.5"></div>
+        </div>
+        <div class="nudge-row">
+          <button class="btn" onclick="sprNudge('x',-8)">◀◀</button>
+          <button class="btn" onclick="sprNudge('x',-1)">◀</button>
+          <button class="btn" onclick="sprNudge('x',1)">▶</button>
+          <button class="btn" onclick="sprNudge('x',8)">▶▶</button>
+          <span style="font-size:9px;color:#666">X</span>
+        </div>
+        <div class="nudge-row">
+          <button class="btn" onclick="sprNudge('y',-10)">▲▲</button>
+          <button class="btn" onclick="sprNudge('y',-1)">▲</button>
+          <button class="btn" onclick="sprNudge('y',1)">▼</button>
+          <button class="btn" onclick="sprNudge('y',10)">▼▼</button>
+          <span style="font-size:9px;color:#666">Y</span>
+        </div>
+        <button class="btn btn-full" onclick="sprSnap()" style="margin-bottom:4px">⊞ SNAP TO CHAR BOUNDARY</button>
+        <div class="coord-badge" id="spr-coords">x=0 y=0 | 2×8 chars</div>
+      </div>
+      <div class="psec">
+        <div class="ptitle">3 · THRESHOLD &amp; INVERT</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span style="font-size:9px;color:#888">thresh</span>
+          <input type="range" id="spr-thresh" min="0" max="255" value="128" style="flex:1;accent-color:#aaa;height:3px"
+            oninput="document.getElementById('spr-thresh-val').textContent=this.value;spriteMoved()">
+          <span id="spr-thresh-val" style="font-size:9px;color:#e8e8e8;min-width:24px">128</span>
+          <label style="font-size:9px;color:#888;display:flex;gap:3px;align-items:center;cursor:pointer">
+            <input type="checkbox" id="spr-invert" onchange="spriteMoved()" style="accent-color:#aaa" checked> inv
+          </label>
+        </div>
+      </div>
+      <div class="psec">
+        <div class="ptitle">4 · CAPTURE TO FRAME</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px">
+          <div><div style="font-size:9px;color:#888;margin-bottom:2px">Animation</div>
+            <select id="spr-anim-sel" style="width:100%;background:#111;color:#e8e8e8;border:1px solid #333;font-family:Share Tech Mono,monospace;font-size:10px;padding:2px">
+              <option value="-1">— none —</option>
+            </select></div>
+          <div><div style="font-size:9px;color:#888;margin-bottom:2px">Frame #</div>
+            <input class="name-in" id="spr-frame-num" type="number" min="0" value="0" style="width:100%" oninput="sprUpdateCapture()"></div>
+        </div>
+        <div id="spr-capture-info" style="font-size:9px;color:#ffcc44;margin-bottom:6px;line-height:1.5">select animation first</div>
+        <button class="btn btn-full" id="btn-spr-capture" style="border-color:#446644;color:#aaffaa;padding:5px;font-size:10px" onclick="sprCapture()">
+          ⬇ CAPTURE → FRAME
+        </button>
+        <div id="spr-capture-result" style="font-size:9px;color:#aaffaa;margin-top:4px"></div>
+      </div>
+    </div>
+    <div class="sprite-right">
+      <div class="psec" style="flex-shrink:0">
+        <div class="ptitle">SCREENSHOT + CHAR GRID — drag to pan</div>
+        <div class="sprite-canvas-wrap" id="sprite-canvas-wrap" style="width:100%;height:260px"
+          onmousedown="sprDragStart(event)" onmousemove="sprDragMove(event)"
+          onmouseup="sprDragEnd()" onmouseleave="sprDragEnd()">
+          <canvas id="sprite-src-canvas"></canvas>
+          <canvas id="sprite-grid-overlay"></canvas>
+        </div>
+        <div style="font-size:9px;color:#666;margin-top:3px">Green grid = char cells (8×10px). Drag to pan.</div>
+      </div>
+      <div class="psec" style="flex-shrink:0">
+        <div class="ptitle">EXL100 PREVIEW — white on black, 4× scale</div>
+        <div class="sprite-result-wrap"><canvas id="sprite-result-canvas"></canvas></div>
+        <div style="font-size:9px;color:#666;margin-top:3px" id="spr-result-info">—</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- main-area -->
+</div><!-- app -->
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════════════════════════════════
+// EXLCHAR v5 — raw cell animation, no hardware slot constraints in editor
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ── Char editor data (128 slots for TRAP 19 export) ──────────────────────────
+const NUM = 128;
+const COLORS = [
+  {name:'BLACK',hex:'#000000'},{name:'RED',hex:'#cc0000'},{name:'GREEN',hex:'#00cc00'},
+  {name:'YELLOW',hex:'#cccc00'},{name:'BLUE',hex:'#0000cc'},{name:'MAGENTA',hex:'#cc00cc'},
+  {name:'CYAN',hex:'#00cccc'},{name:'WHITE',hex:'#e8e8e8'}
+];
+let chars = Array.from({length:NUM},()=>({
+  pixels: Array.from({length:10},()=>new Array(8).fill(0)),
+  fg:7, bg:0, name:''
+}));
+let groupStart=0, selInGroup=0, colMajor=true;
+let importImg=null, importImageData=null;
+
+// ── Animation data — v5 model: frame.cells[] = raw pixel arrays ──────────────
+// cells[i] = [[bit×8]×10]  col-major: col0 rows 0..rows-1, col1 rows 0..rows-1...
+let animations = [];
+let nextFrameId = 1; // persistent unique frame ID counter
+let selAnim=-1, selFrame=-1;
+let playTimer=null, playFrameIdx=0;
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const hex2 = n => '$'+n.toString(16).toUpperCase().padStart(2,'0');
+const isDefined = i => chars[i].pixels.some(r=>r.some(v=>v));
+const clonePixels = p => p.map(r=>[...r]);
+const blankCell = () => Array.from({length:10},()=>new Array(8).fill(0));
+const isBlankCell = px => px.every(r=>r.every(b=>b===0));
+const colMajorIdx = (col,row,rows) => col*rows+row;
+
+function rowToByte(row){ return row.reduce((a,v,i)=>a|(v<<(7-i)),0); }
+function byteToRow(b){ return Array.from({length:8},(_,i)=>(b>>(7-i))&1); }
+function charToBytes(i){ return [...chars[i].pixels].reverse().map(rowToByte); }
+const giToPos = gi => colMajor
+  ? {col:Math.floor(gi/8), row:gi%8}
+  : {col:gi%4, row:Math.floor(gi/4)};
+const selIdx = () => groupStart+selInGroup;
+
+function renderCellToCtx(ctx, pixels, dx, dy, scale, fg='#e8e8e8', bg='#000'){
+  ctx.fillStyle=bg; ctx.fillRect(dx,dy,8*scale,10*scale);
+  ctx.fillStyle=fg;
+  for(let r=0;r<10;r++) for(let c=0;c<8;c++)
+    if(pixels[r][c]) ctx.fillRect(dx+c*scale, dy+r*scale, scale, scale);
+}
+
+function renderToCanvas(cv, idx, scale){
+  const ch=chars[idx];
+  cv.width=8*scale; cv.height=10*scale;
+  const ctx=cv.getContext('2d');
+  renderCellToCtx(ctx, ch.pixels, 0, 0, scale, COLORS[ch.fg].hex, COLORS[ch.bg].hex);
+}
+
+// ── Frame rendering — direct from cells[], no chars[] lookup ─────────────────
+function renderFrameToCanvas(cv, frame){
+  const ctx=cv.getContext('2d');
+  ctx.fillStyle='#111'; ctx.fillRect(0,0,cv.width,cv.height);
+  for(let col=0;col<frame.cols;col++){
+    for(let row=0;row<frame.rows;row++){
+      const ci=colMajorIdx(col,row,frame.rows);
+      if(ci>=frame.cells.length) continue;
+      const px=frame.cells[ci];
+      if(!px) continue;
+      renderCellToCtx(ctx, px, col*8, row*10, 1, '#e8e8e8', '#111');
+    }
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// CHAR EDITOR STRIP
+// ════════════════════════════════════════════════════════════════════════════
+function buildStrip(){
+  const el=document.getElementById('strip'); el.innerHTML='';
+  for(let i=0;i<NUM;i++){
+    const s=document.createElement('div');
+    s.className='strip-char'+(i>=groupStart&&i<groupStart+32?' sel-group':'')+(isDefined(i)?' defined':'');
+    const cv=document.createElement('canvas');
+    cv.width=8; cv.height=10; cv.style.width='8px'; cv.style.height='10px';
+    renderToCanvas(cv,i,1); s.appendChild(cv);
+    const num=document.createElement('div'); num.className='cnum'; num.textContent=hex2(i); s.appendChild(num);
+    s.onclick=()=>{ groupStart=Math.min(96,Math.floor(i/8)*8); selInGroup=i-groupStart; rebuild(); };
+    el.appendChild(s);
+  }
+}
+
+let saveTimer=null;
+const STORAGE_KEY='exlchar_v7';
+function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(doSave,1500);}
+function doSave(){
+  try{
+    localStorage.setItem(STORAGE_KEY,JSON.stringify({chars:chars.map(c=>({pixels:c.pixels,fg:c.fg,bg:c.bg,name:c.name})),animations,groupStart,selInGroup,sprRow:(document.getElementById('spr-row-in')||{}).value,savedAt:new Date().toISOString()}));
+    document.getElementById('autosave-info').textContent='saved '+new Date().toLocaleTimeString();
+  }catch(e){}
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// CHAR EDITOR GRID
+// ════════════════════════════════════════════════════════════════════════════
+function rebuild(){
+  buildStrip();
+  const g=document.getElementById('char-grid'); g.innerHTML='';
+  for(let gi=0;gi<32;gi++){
+    const idx=groupStart+gi;
+    if(idx>=NUM) continue;
+    const ch=chars[idx];
+    const cell=document.createElement('div');
+    cell.className='char-cell'+(gi===selInGroup?' active':'');
+    const hdr=document.createElement('div'); hdr.className='cell-hdr';
+    hdr.textContent=hex2(idx)+(ch.name?' '+ch.name:'');
+    cell.appendChild(hdr);
+    const pg=document.createElement('div'); pg.className='pixel-grid';
+    pg.style.setProperty('--fg-color',COLORS[ch.fg].hex);
+    pg.style.setProperty('--bg-color',COLORS[ch.bg].hex);
+    for(let r=0;r<10;r++) for(let c2=0;c2<8;c2++){
+      const pix=document.createElement('div'); pix.className='pixel'+(ch.pixels[r][c2]?' on':'');
+      pix.dataset.r=r; pix.dataset.c=c2; pix.dataset.gi=gi;
+      pg.appendChild(pix);
+    }
+    pg.addEventListener('mousedown',e=>{ if(e.target.classList.contains('pixel')){ e.preventDefault(); pixelMousedown(e,gi,idx); }});
+    pg.addEventListener('mousemove',e=>{ if(e.buttons&&e.target.classList.contains('pixel')) pixelDrag(e,gi,idx); });
+    cell.appendChild(pg);
+    cell.addEventListener('mousedown',ev=>{ if(ev.target.classList.contains('char-cell')||ev.target.classList.contains('cell-hdr')){ selInGroup=gi; rebuild(); updateEditorPane(); }});
+    g.appendChild(cell);
+  }
+  document.getElementById('sel-idx').textContent=hex2(selIdx());
+  const {col,row}=giToPos(selInGroup);
+  document.getElementById('sel-pos').textContent='col '+col+' row '+row;
+  document.getElementById('grid-label').textContent='GROUP '+hex2(groupStart)+'–'+hex2(Math.min(groupStart+31,127));
+  document.getElementById('strip-label2').textContent=hex2(groupStart);
+  document.getElementById('strip-slider').value=groupStart;
+  document.getElementById('char-name-in').value=chars[selIdx()].name||'';
+  updateGroupPreview();
+  updateEditorPane();
+  syncSliders();
+}
+
+let drawMode=null;
+function pixelMousedown(e,gi,idx){
+  selInGroup=gi;
+  const r=+e.target.dataset.r, c=+e.target.dataset.c;
+  drawMode=chars[idx].pixels[r][c]?0:1;
+  chars[idx].pixels[r][c]=drawMode;
+  e.target.classList.toggle('on',!!drawMode);
+  updateGroupPreview(); scheduleSave();
+}
+function pixelDrag(e,gi,idx){
+  if(drawMode===null) return;
+  const r=+e.target.dataset.r, c=+e.target.dataset.c;
+  chars[idx].pixels[r][c]=drawMode;
+  e.target.classList.toggle('on',!!drawMode);
+  updateGroupPreview(); scheduleSave();
+}
+document.addEventListener('mouseup',()=>drawMode=null);
+
+function updateGroupPreview(){
+  const cv=document.getElementById('group-preview');
+  cv.width=32; cv.height=80;
+  const ctx=cv.getContext('2d');
+  ctx.fillStyle='#111'; ctx.fillRect(0,0,32,80);
+  for(let gi=0;gi<32;gi++){
+    const idx=groupStart+gi; if(idx>=NUM) continue;
+    const {col,row}=giToPos(gi);
+    renderCellToCtx(ctx, chars[idx].pixels, col*8, row*10, 1, COLORS[chars[idx].fg].hex, COLORS[chars[idx].bg].hex);
+  }
+}
+
+function updateEditorPane(){
+  const idx=selIdx(); const ch=chars[idx];
+  const cv=document.getElementById('big-pixel-editor');
+  const ctx=cv.getContext('2d'); const S=16;
+  ctx.fillStyle=COLORS[ch.bg].hex; ctx.fillRect(0,0,128,160);
+  for(let r=0;r<10;r++) for(let c=0;c<8;c++){
+    if(ch.pixels[r][c]){ctx.fillStyle=COLORS[ch.fg].hex; ctx.fillRect(c*S,r*S,S,S);}
+    ctx.strokeStyle='#1e1e1e'; ctx.strokeRect(c*S,r*S,S,S);
+  }
+  // FG/BG swatches
+  ['fg','bg'].forEach(t=>{
+    const grd=document.getElementById(t+'-grid'); grd.innerHTML='';
+    COLORS.forEach((c,ci)=>{
+      const sw=document.createElement('div'); sw.className='cswatch'+(chars[idx][t]===ci?' sel':'');
+      sw.style.background=c.hex; sw.style.color=ci<4?'#fff':'#000';
+      sw.textContent=ci; sw.title=c.name;
+      sw.onclick=()=>{ chars[idx][t]=ci; rebuild(); updateEditorPane(); scheduleSave(); };
+      grd.appendChild(sw);
+    });
+  });
+}
+
+// Big pixel editor mouse
+const bigCv=document.getElementById('big-pixel-editor');
+let bigDrawMode=null;
+bigCv.addEventListener('mousedown',e=>{
+  const S=16, r=Math.floor(e.offsetY/S), c=Math.floor(e.offsetX/S);
+  if(r<0||r>=10||c<0||c>=8) return;
+  const idx=selIdx();
+  bigDrawMode=chars[idx].pixels[r][c]?0:1;
+  chars[idx].pixels[r][c]=bigDrawMode;
+  rebuild(); updateEditorPane(); scheduleSave();
+});
+bigCv.addEventListener('mousemove',e=>{
+  if(bigDrawMode===null) return;
+  const S=16, r=Math.floor(e.offsetY/S), c=Math.floor(e.offsetX/S);
+  if(r<0||r>=10||c<0||c>=8) return;
+  const idx=selIdx();
+  chars[idx].pixels[r][c]=bigDrawMode;
+  rebuild(); updateEditorPane(); scheduleSave();
+});
+bigCv.addEventListener('mouseup',()=>bigDrawMode=null);
+
+function syncSliders(){
+  const sl=document.getElementById('strip-slider');
+  sl.value=groupStart;
+}
+
+document.getElementById('strip-slider').oninput=e=>{
+  groupStart=+e.target.value; selInGroup=0; rebuild();
+};
+document.getElementById('col-major-check').onchange=e=>{
+  colMajor=e.target.checked; rebuild();
+};
+document.getElementById('char-name-in').oninput=e=>{
+  chars[selIdx()].name=e.target.value; scheduleSave();
+};
+
+function clearGroup(){ for(let gi=0;gi<32;gi++){ const idx=groupStart+gi; if(idx<NUM) chars[idx].pixels=blankCell(); } rebuild(); scheduleSave(); }
+function invertGroup(){ for(let gi=0;gi<32;gi++){ const idx=groupStart+gi; if(idx<NUM) chars[idx].pixels=chars[idx].pixels.map(r=>r.map(b=>1-b)); } rebuild(); scheduleSave(); }
+
+// ════════════════════════════════════════════════════════════════════════════
+// CHAR IMPORT FROM IMAGE
+// ════════════════════════════════════════════════════════════════════════════
+document.getElementById('img-file').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=ev=>{ importImg=new Image(); importImg.onload=()=>{ previewImport(); document.getElementById('import-info').textContent=importImg.width+'×'+importImg.height+'px'; }; importImg.src=ev.target.result; };
+  rd.readAsDataURL(f);
+};
+
+function previewImport(){
+  if(!importImg) return;
+  const thresh=+document.getElementById('threshold').value;
+  const invert=document.getElementById('import-invert').checked;
+  const charW=Math.min(Math.ceil(importImg.width/8),4);
+  const charH=Math.min(Math.ceil(importImg.height/10),8);
+  const cvSrc=document.createElement('canvas');
+  cvSrc.width=importImg.width; cvSrc.height=importImg.height;
+  cvSrc.getContext('2d').drawImage(importImg,0,0);
+  const imgData=cvSrc.getContext('2d').getImageData(0,0,cvSrc.width,cvSrc.height);
+  const cvPrev=document.getElementById('import-preview');
+  cvPrev.style.display='block'; cvPrev.width=charW*8; cvPrev.height=charH*10;
+  const sc=charH<=4?3:2; cvPrev.style.width=(charW*8*sc)+'px'; cvPrev.style.height=(charH*10*sc)+'px';
+  const ctx=cvPrev.getContext('2d'); ctx.fillStyle='#111'; ctx.fillRect(0,0,cvPrev.width,cvPrev.height);
+  importImageData={charW,charH,chars:[]};
+  for(let cy=0;cy<charH;cy++) for(let cx=0;cx<charW;cx++){
+    const pixels=[];
+    for(let r=0;r<10;r++){
+      const row=[];
+      const py=cy*10+r;
+      for(let c=0;c<8;c++){
+        const px2=cx*8+c; let on=0;
+        if(py<importImg.height&&px2<importImg.width){
+          const px3=(py*importImg.width+px2)*4;
+          const lum=imgData.data[px3]*.299+imgData.data[px3+1]*.587+imgData.data[px3+2]*.114;
+          on=lum<thresh?1:0; if(invert)on=1-on;
+        }
+        row.push(on);
+        ctx.fillStyle=on?'#e8e8e8':'#111'; ctx.fillRect(cx*8+c,cy*10+r,1,1);
+      }
+      pixels.push(row);
+    }
+    importImageData.chars.push(pixels);
+  }
+}
+
+document.getElementById('btn-apply-import').onclick=()=>{
+  if(!importImageData) return;
+  const {charW,charH,chars:iChars}=importImageData;
+  const startSlot=selIdx();
+  const colStride=Math.ceil(charH/8)*8;
+  for(let cx=0;cx<charW;cx++) for(let cy=0;cy<charH;cy++){
+    const slot=startSlot+cx*colStride+cy;
+    if(slot<NUM) chars[slot].pixels=iChars[cy*charW+cx];
+  }
+  groupStart=Math.min(96,Math.floor(startSlot/8)*8);
+  selInGroup=startSlot-groupStart;
+  rebuild(); scheduleSave();
+  document.getElementById('import-info').textContent='Imported '+charW+'×'+charH+' chars from '+hex2(startSlot);
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// CHAR EDITOR EXPORT
+// ════════════════════════════════════════════════════════════════════════════
+function dl(text,filename){
+  const a=document.createElement('a'); a.href='data:text/plain;charset=utf-8,'+encodeURIComponent(text);
+  a.download=filename; a.click();
+}
+
+document.getElementById('btn-export').onclick=()=>{
+  const lines=[
+    '; EXL100 Char data — EXLCHAR v5',
+    '; Format: 10 bytes/char, bottom-row-first (TRAP 19)',
+    'CHAR_DATA:'
+  ];
+  for(let i=0;i<NUM;i++){
+    const bytes=charToBytes(i);
+    lines.push('        .byte   '+bytes.map(b=>hex2(b)).join(',')+'  ; '+hex2(i)+(chars[i].name?' '+chars[i].name:''));
+  }
+  dl(lines.join('\n'),'exlchars.h');
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// ANIMATION — v5 model: frame.cells[] = raw pixel arrays
+// ════════════════════════════════════════════════════════════════════════════
+function buildAnimList(){
+  // Sync sprite selector
+  const sel=document.getElementById('spr-anim-sel');
+  if(sel){
+    const prev=sel.value;
+    sel.innerHTML='<option value="-1">— none —</option>';
+    animations.forEach((a,i)=>{
+      const o=document.createElement('option');
+      o.value=i; o.textContent=a.name||('anim '+i);
+      if(String(i)===prev||(prev==='-1'&&i===selAnim)) o.selected=true;
+      sel.appendChild(o);
+    });
+    sprUpdateCapture();
+  }
+  const list=document.getElementById('anim-list'); list.innerHTML='';
+  if(!animations.length){
+    list.innerHTML='<div style="font-size:9px;color:#666;padding:8px">No animations — click + NEW</div>'; return;
+  }
+  animations.forEach((anim,ai)=>{
+    const item=document.createElement('div');
+    item.className='anim-item'+(ai===selAnim?' selected':'');
+    const hdr=document.createElement('div'); hdr.className='anim-item-hdr';
+    hdr.innerHTML=`<span class="anim-name">${anim.name}</span><span class="anim-meta">${anim.frames.length}fr · x${anim.x_advance} · ${anim.loop?'∞':'1×'}</span>`;
+    hdr.onclick=()=>{selAnim=ai;selFrame=-1;buildAnimList();updateAnimProps();buildTimeline();renderAnimPreview();};
+    item.appendChild(hdr);
+    if(ai===selAnim){
+      const fr=document.createElement('div'); fr.className='anim-frames';
+      anim.frames.forEach((f,fi)=>{
+        const chip=document.createElement('div');
+        chip.className='frame-chip'+(fi===selFrame?' sel-frame':'');
+        const cv=document.createElement('canvas');
+        cv.width=f.cols*8; cv.height=f.rows*10;
+        const sc=f.rows<=4?2:1; cv.style.width=(f.cols*8*sc)+'px'; cv.style.height=(f.rows*10*sc)+'px';
+        renderFrameToCanvas(cv,f); chip.appendChild(cv);
+        const dur=document.createElement('div'); dur.className='fdur';
+        dur.textContent=f.cols+'×'+f.rows+' d:'+f.duration;
+        chip.appendChild(dur);
+        // Frame ID badge
+        const idBadge=document.createElement('div');
+        idBadge.style.cssText='font-size:8px;color:#ffcc44;font-weight:bold;margin-top:1px';
+        idBadge.textContent='#'+(f.id||'?');
+        chip.appendChild(idBadge);
+        const del=document.createElement('span'); del.className='fdel'; del.textContent='×';
+        del.onclick=e=>{e.stopPropagation();anim.frames.splice(fi,1);selFrame=-1;buildAnimList();buildTimeline();scheduleSave();};
+        chip.appendChild(del);
+        chip.onclick=()=>{selFrame=fi;playFrameIdx=fi;buildAnimList();buildTimeline();updateFrameProps();renderAnimPreview();};
+        fr.appendChild(chip);
+      });
+      item.appendChild(fr);
+    }
+    list.appendChild(item);
+  });
+}
+
+function updateAnimProps(){
+  const has=selAnim>=0&&selAnim<animations.length;
+  document.getElementById('anim-props-empty').style.display=has?'none':'block';
+  document.getElementById('anim-props').style.display=has?'block':'none';
+  if(!has) return;
+  const a=animations[selAnim];
+  document.getElementById('anim-name-in').value=a.name;
+  document.getElementById('anim-x-advance').value=a.x_advance;
+  document.getElementById('anim-loop').checked=a.loop;
+  document.getElementById('anim-key-sel').value=a.key||'NONE';
+  document.getElementById('anim-default-chk').checked=!!a.isDefault;
+}
+
+function updateFrameProps(){
+  const has=selAnim>=0&&selFrame>=0&&animations[selAnim]&&selFrame<animations[selAnim].frames.length;
+  document.getElementById('frame-props-empty').style.display=has?'none':'block';
+  document.getElementById('frame-props').style.display=has?'block':'none';
+  if(!has) return;
+  const f=animations[selAnim].frames[selFrame];
+  document.getElementById('frame-cols').value=f.cols;
+  document.getElementById('frame-rows').value=f.rows;
+  document.getElementById('frame-xoff').value=f.x_off;
+  document.getElementById('frame-dur').value=f.duration;
+  document.getElementById('frame-size').textContent=f.cols+'×'+f.rows+' = '+f.cells.length+' cells';
+  document.getElementById('frame-id').textContent='#'+(f.id||'?');
+  // Populate cross-animation copy target list (preserve choice when possible)
+  const cts=document.getElementById('frame-copyto-sel');
+  if(cts){
+    const prev=cts.value;
+    cts.innerHTML='';
+    animations.forEach((a,i)=>{
+      const o=document.createElement('option');
+      o.value=i; o.textContent=a.name+(i===selAnim?' (this)':'');
+      cts.appendChild(o);
+    });
+    if(prev!==''&&+prev<animations.length) cts.value=prev;
+    else { const def=animations.findIndex((a,i)=>i!==selAnim); if(def>=0) cts.value=def; }
+  }
+  renderFramePreview();
+}
+
+function updateFrameProp(prop,val){
+  if(selAnim<0||selFrame<0) return;
+  const f=animations[selAnim].frames[selFrame];
+  f[prop]=val;
+  if(prop==='cols') {
+    // Resize cells array to cols*rows
+    const needed=val*f.rows;
+    while(f.cells.length<needed) f.cells.push(blankCell());
+    f.cells.length=needed;
+  }
+  buildAnimList(); buildTimeline(); updateFrameProps(); renderAnimPreview(); scheduleSave();
+}
+
+// ── FRAME PIXEL EDITOR ───────────────────────────────────────────────────────
+// Frames own their pixels (cells[]) — imported via sprite capture or hand-drawn.
+// This editor paints directly into the selected frame's cells.
+let fpZoom=6, fpDrawing=false, fpValue=1;
+function renderFramePreview(){
+  if(selAnim<0||selFrame<0) return;
+  const f=animations[selAnim].frames[selFrame];
+  const cv=document.getElementById('frame-preview');
+  cv.width=f.cols*8*fpZoom; cv.height=f.rows*10*fpZoom;
+  cv.style.width=cv.width+'px'; cv.style.height=cv.height+'px';
+  const ctx=cv.getContext('2d');
+  ctx.fillStyle='#111'; ctx.fillRect(0,0,cv.width,cv.height);
+  for(let col=0;col<f.cols;col++)for(let row=0;row<f.rows;row++){
+    const ci=colMajorIdx(col,row,f.rows);
+    if(ci>=f.cells.length) continue;
+    const px=f.cells[ci]; if(!px) continue;
+    renderCellToCtx(ctx,px,col*8*fpZoom,row*10*fpZoom,fpZoom,'#e8e8e8','#111');
+  }
+  // pixel grid (visible from 4×)
+  if(fpZoom>=4){
+    ctx.strokeStyle='rgba(255,255,255,0.07)'; ctx.lineWidth=1;
+    for(let x=0;x<=f.cols*8;x++){ctx.beginPath();ctx.moveTo(x*fpZoom+.5,0);ctx.lineTo(x*fpZoom+.5,cv.height);ctx.stroke();}
+    for(let y=0;y<=f.rows*10;y++){ctx.beginPath();ctx.moveTo(0,y*fpZoom+.5);ctx.lineTo(cv.width,y*fpZoom+.5);ctx.stroke();}
+  }
+  // 8×10 cell boundaries (char alignment on the TMS3556)
+  ctx.strokeStyle='rgba(100,180,255,0.35)';
+  for(let c=0;c<=f.cols;c++){ctx.beginPath();ctx.moveTo(c*8*fpZoom+.5,0);ctx.lineTo(c*8*fpZoom+.5,cv.height);ctx.stroke();}
+  for(let r=0;r<=f.rows;r++){ctx.beginPath();ctx.moveTo(0,r*10*fpZoom+.5);ctx.lineTo(cv.width,r*10*fpZoom+.5);ctx.stroke();}
+}
+(function(){
+  const cv=document.getElementById('frame-preview');
+  cv.oncontextmenu=e=>e.preventDefault();
+  function pixAt(e){
+    if(selAnim<0||selFrame<0) return null;
+    const f=animations[selAnim].frames[selFrame];
+    const r=cv.getBoundingClientRect();
+    const gx=Math.floor((e.clientX-r.left)/fpZoom), gy=Math.floor((e.clientY-r.top)/fpZoom);
+    const col=Math.floor(gx/8), row=Math.floor(gy/10);
+    if(col<0||col>=f.cols||row<0||row>=f.rows) return null;
+    return {f,ci:colMajorIdx(col,row,f.rows),cx:gx%8,cy:gy%10};
+  }
+  function paint(e){
+    const p=pixAt(e); if(!p) return;
+    if(!p.f.cells[p.ci]) p.f.cells[p.ci]=blankCell();   // imported blanks may be null
+    if(p.f.cells[p.ci][p.cy][p.cx]!==fpValue){
+      p.f.cells[p.ci][p.cy][p.cx]=fpValue;
+      renderFramePreview();                              // live repaint during drag
+    }
+  }
+  cv.onmousedown=e=>{e.preventDefault();fpDrawing=true;fpValue=(e.button===2)?0:1;paint(e);};
+  cv.onmousemove=e=>{if(fpDrawing)paint(e);};
+  const endStroke=()=>{
+    if(!fpDrawing) return;
+    fpDrawing=false;
+    // sync chips/timeline/preview once per stroke (not per pixel)
+    buildAnimList();buildTimeline();renderAnimPreview();scheduleSave();
+  };
+  cv.onmouseup=endStroke; cv.onmouseleave=endStroke;
+  document.getElementById('btn-frame-fliph').onclick=()=>{
+    if(selAnim<0||selFrame<0) return;
+    const f=animations[selAnim].frames[selFrame];
+    const nc=new Array(f.cols*f.rows);
+    for(let c=0;c<f.cols;c++)for(let r=0;r<f.rows;r++){
+      const src=f.cells[colMajorIdx(f.cols-1-c,r,f.rows)];
+      nc[colMajorIdx(c,r,f.rows)]=src?src.map(row=>[...row].reverse()):null;
+    }
+    f.cells=nc;
+    buildAnimList();buildTimeline();updateFrameProps();renderAnimPreview();scheduleSave();
+  };
+  // Shift ALL pixels of the frame by (dx,dy) — the frame is treated as one
+  // continuous cols*8 × rows*10 bitmap, so pixels cross cell boundaries.
+  // Pixels pushed off the frame edge are dropped (no wrap).
+  function frameShift(dx,dy){
+    if(selAnim<0||selFrame<0) return;
+    const f=animations[selAnim].frames[selFrame];
+    const W=f.cols*8, H=f.rows*10;
+    const bmp=Array.from({length:H},()=>new Array(W).fill(0));
+    for(let c=0;c<f.cols;c++)for(let r=0;r<f.rows;r++){
+      const px=f.cells[colMajorIdx(c,r,f.rows)]; if(!px) continue;
+      for(let y=0;y<10;y++)for(let x=0;x<8;x++) if(px[y][x]) bmp[r*10+y][c*8+x]=1;
+    }
+    const nc=new Array(f.cols*f.rows);
+    for(let c=0;c<f.cols;c++)for(let r=0;r<f.rows;r++){
+      const cell=blankCell();
+      for(let y=0;y<10;y++)for(let x=0;x<8;x++){
+        const sx=c*8+x-dx, sy=r*10+y-dy;
+        cell[y][x]=(sx>=0&&sx<W&&sy>=0&&sy<H)?bmp[sy][sx]:0;
+      }
+      nc[colMajorIdx(c,r,f.rows)]=cell;
+    }
+    f.cells=nc;
+    buildAnimList();buildTimeline();updateFrameProps();renderAnimPreview();scheduleSave();
+  }
+  document.getElementById('btn-fp-left').onclick =()=>frameShift(-1,0);
+  document.getElementById('btn-fp-right').onclick=()=>frameShift(1,0);
+  document.getElementById('btn-fp-up').onclick   =()=>frameShift(0,-1);
+  document.getElementById('btn-fp-down').onclick =()=>frameShift(0,1);
+  document.getElementById('btn-frame-clear').onclick=()=>{
+    if(selAnim<0||selFrame<0) return;
+    if(!confirm('Clear all pixels of this frame?')) return;
+    const f=animations[selAnim].frames[selFrame];
+    f.cells=f.cells.map(()=>blankCell());
+    buildAnimList();buildTimeline();updateFrameProps();renderAnimPreview();scheduleSave();
+  };
+})();
+
+function buildTimeline(){
+  const tl=document.getElementById('anim-timeline'); tl.innerHTML='';
+  if(selAnim<0||!animations[selAnim]){
+    tl.innerHTML='<span style="font-size:9px;color:#666">select animation</span>'; return;
+  }
+  animations[selAnim].frames.forEach((f,fi)=>{
+    const fr=document.createElement('div');
+    fr.className='tl-frame'+(fi===playFrameIdx?' playing':'');
+    const cv=document.createElement('canvas');
+    cv.width=f.cols*8; cv.height=f.rows*10;
+    cv.style.width='28px'; cv.style.height=Math.max(28,f.rows*5)+'px';
+    renderFrameToCanvas(cv,f); fr.appendChild(cv);
+    fr.onclick=()=>{selFrame=fi;playFrameIdx=fi;buildAnimList();buildTimeline();updateFrameProps();renderAnimPreview();};
+    tl.appendChild(fr);
+  });
+}
+
+function renderAnimPreview(){
+  const cv=document.getElementById('anim-canvas');
+  const ctx=cv.getContext('2d');
+  ctx.fillStyle='#111'; ctx.fillRect(0,0,cv.width,cv.height);
+  if(selAnim<0||!animations[selAnim]||!animations[selAnim].frames.length) return;
+  const fi=Math.min(playFrameIdx,animations[selAnim].frames.length-1);
+  const f=animations[selAnim].frames[fi];
+  // Scale to fit the tallest/widest possible frame (8 rows, max cols+x_off)
+  // Scale based on sprite height
+  const sc=Math.max(1,Math.min(4, Math.floor(cv.height/(f.rows*10))));
+  // Frame 0 starts at x=0, each frame shifts by x_off chars relative to frame 0
+  const baseXoff=animations[selAnim].frames[0]?.x_off||0;
+  const relXoff=f.x_off-baseXoff;
+  const ox=relXoff*8*sc;
+  const oy=Math.floor((cv.height-f.rows*10*sc)/2);
+  for(let col=0;col<f.cols;col++){
+    for(let row=0;row<f.rows;row++){
+      const ci=colMajorIdx(col,row,f.rows);
+      if(ci>=f.cells.length) continue;
+      const px=f.cells[ci]; if(!px||isBlankCell(px)) continue;
+      renderCellToCtx(ctx, px, ox+(f.x_off+col)*8*sc, oy+row*10*sc, sc, '#e8e8e8', '#111');
+    }
+  }
+  document.getElementById('play-status').textContent='frame '+(fi+1)+'/'+animations[selAnim].frames.length+' x_off='+f.x_off;
+}
+
+// Playback
+document.getElementById('btn-play').onclick=()=>{
+  if(playTimer){clearInterval(playTimer);playTimer=null;document.getElementById('btn-play').textContent='▶';return;}
+  document.getElementById('btn-play').textContent='⏸';
+  playTimer=setInterval(()=>{
+    if(selAnim<0||!animations[selAnim]||!animations[selAnim].frames.length){clearInterval(playTimer);playTimer=null;return;}
+    playFrameIdx=(playFrameIdx+1)%animations[selAnim].frames.length;
+    buildTimeline(); renderAnimPreview();
+  },200);
+};
+document.getElementById('btn-prev-frame').onclick=()=>{
+  if(selAnim<0||!animations[selAnim]||!animations[selAnim].frames.length) return;
+  playFrameIdx=(playFrameIdx-1+animations[selAnim].frames.length)%animations[selAnim].frames.length;
+  selFrame=playFrameIdx; buildAnimList();buildTimeline();updateFrameProps();renderAnimPreview();
+};
+document.getElementById('btn-next-frame').onclick=()=>{
+  if(selAnim<0||!animations[selAnim]||!animations[selAnim].frames.length) return;
+  playFrameIdx=(playFrameIdx+1)%animations[selAnim].frames.length;
+  selFrame=playFrameIdx; buildAnimList();buildTimeline();updateFrameProps();renderAnimPreview();
+};
+
+document.getElementById('anim-name-in').oninput=e=>{if(selAnim>=0){animations[selAnim].name=e.target.value;buildAnimList();}};
+document.getElementById('anim-x-advance').oninput=e=>{if(selAnim>=0)animations[selAnim].x_advance=+e.target.value;};
+document.getElementById('anim-loop').onchange=e=>{if(selAnim>=0)animations[selAnim].loop=e.target.checked;};
+document.getElementById('anim-key-sel').onchange=e=>{
+  if(selAnim>=0){ animations[selAnim].key=e.target.value; scheduleSave(); }
+};
+document.getElementById('anim-default-chk').onchange=e=>{
+  if(selAnim>=0){
+    // Only one animation can be default
+    animations.forEach((a,i)=>a.isDefault=(i===selAnim&&e.target.checked));
+    scheduleSave();
+  }
+};
+
+document.getElementById('btn-del-anim').onclick=()=>{
+  if(selAnim<0||!confirm('Delete animation?')) return;
+  animations.splice(selAnim,1); selAnim=Math.min(selAnim,animations.length-1);
+  buildAnimList();updateAnimProps();buildTimeline();renderAnimPreview();scheduleSave();
+};
+document.getElementById('btn-del-frame').onclick=()=>{
+  if(selAnim<0||selFrame<0) return;
+  animations[selAnim].frames.splice(selFrame,1); selFrame=-1;
+  buildAnimList();buildTimeline();updateFrameProps();renderAnimPreview();scheduleSave();
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// ASM EXPORT — optimization pass: assigns char slots from raw cells
+// ════════════════════════════════════════════════════════════════════════════
+document.getElementById('spr-row-in').oninput=()=>{ scheduleSave(); };
+document.getElementById('btn-export-walkman').onclick=()=>{
+  if(!animations.length){ alert('No animations defined.'); return; }
+
+  // ── Validate: must have exactly one default animation ────────────────────
+  const defaultAnims = animations.filter(a=>a.isDefault);
+  if(defaultAnims.length===0){ alert('Mark one animation as "default state" in animation properties.\n\nClick each animation in the list, then set key and check "default state".'); return; }
+  const defaultAnim = defaultAnims[0];
+
+  // Warn if non-default animations have no key binding
+  const noKeyAnims = animations.filter(a=>!a.isDefault&&(!a.key||a.key==='NONE'));
+  if(noKeyAnims.length>0){
+    const names = noKeyAnims.map(a=>a.name).join(', ');
+    if(!confirm('WARNING: These animations have no key binding: '+names+'\n\nThey will never be triggered by input.\n\nClick Cancel to go back and set key bindings.\nClick OK to export anyway.')){
+      return;
+    }
+  }
+
+  const ROWS=8;
+  const DBG_KEY=!!(document.getElementById('dbg-key-chk')&&document.getElementById('dbg-key-chk').checked);
+  let SPR_ROW=parseInt(document.getElementById('spr-row-in').value,10);
+  if(isNaN(SPR_ROW)||SPR_ROW<0) SPR_ROW=0;
+  if(SPR_ROW>17) SPR_ROW=17;   // 8-row sprite must fit within 25 rows (0..24), so top row max = 17
+  const safeName = (animations[0].name||'GAME').replace(/[^A-Z0-9_]/gi,'_').toUpperCase();
+
+  // ── Collect all frames from ALL animations ───────────────────────────────
+  // Build unified char slot assignment across all animations
+  // DUAL-BANK: slot ids 0..127 = BAGC1 (attr $F0, code = id);
+  //            slot ids 128..255 = BAGC2 (attr $E8, code = id-128).
+  // $20/$7F are reserved in each bank → budget 2×126 = 252 unique cells.
+  const BLANK_SLOT=0x7F;
+  const cellKey=px=>px.map(r=>r.join('')).join('');
+  const blankKey=cellKey(blankCell());
+  const slotMap=new Map();
+  slotMap.set(blankKey,BLANK_SLOT);
+  let nextSlot2=0, overflowCount=0;
+  const usedCells=[];
+  const SLOT_SKIP=new Set([0x20,0x7F,0xA0,0xFF]);
+  const slotAttr=s=>s<128?0xF0:0xE8;   // generator select: CG=10 (BAGC1) / CG=01 (BAGC2)
+  const slotCode=s=>s&0x7F;
+  function assignSlot(px){
+    const k=cellKey(px);
+    if(slotMap.has(k)) return slotMap.get(k);
+    while(SLOT_SKIP.has(nextSlot2)) nextSlot2++;
+    if(nextSlot2>=256){overflowCount++;return BLANK_SLOT;}
+    const s=nextSlot2++;
+    slotMap.set(k,s);
+    usedCells.push({slot:s,pixels:px});
+    return s;
+  }
+
+  // Per-animation slot arrays
+  const animSlotArrays={}; // animIdx → [frameSlotArrays]
+  animations.forEach((anim,ai)=>{
+    animSlotArrays[ai]=anim.frames.map(f=>f.cells.map(px=>assignSlot(px||blankCell())));
+  });
+
+  // ── Abort cleanly (ONE message) if the cell budget is exceeded ───────────
+  if(overflowCount>0){
+    const seen=new Set([blankKey]); const per=[];
+    animations.forEach(a=>{
+      let n=0;
+      a.frames.forEach(f=>f.cells.forEach(px=>{const k=cellKey(px||blankCell());if(!seen.has(k)){seen.add(k);n++;}}));
+      per.push('   '+a.name+': +'+n+' new cells');
+    });
+    alert('EXPORT ABORTED — too many unique sprite cells.\n\n'
+      +'Needed: '+(usedCells.length+overflowCount)+' unique cells\n'
+      +'Budget: 252 (BAGC1 + BAGC2, 126 slots each)\n\n'
+      +'First-appearance count per animation:\n'+per.join('\n')
+      +'\n\nReduce or simplify frames, or shift frame pixels so more cells become identical (identical cells share one slot).');
+    return;
+  }
+
+  // ── ALL_CHARS ────────────────────────────────────────────────────────────
+  const charData=Array.from({length:128},(_,i)=>charToBytes(i).slice());
+  usedCells.filter(c=>c.slot<128).forEach(({slot,pixels})=>{ charData[slot]=[...pixels].reverse().map(rowToByte); });
+  charData[0x7F]=new Array(10).fill(0);
+  const allCharsLines=charData.map((bytes,i)=>
+    '        .byte   '+bytes.map(b=>hex2(b)).join(',')+'  ; '+hex2(i)+(i===0x7F?' ← blank':'')
+  );
+  // ── ALL_CHARS2 (BAGC2 overflow bank, only when >126 unique cells) ────────
+  const bank2Cells=usedCells.filter(c=>c.slot>=128);
+  const bank2Count=bank2Cells.length?Math.max(...bank2Cells.map(c=>c.slot-128))+1:0;
+  const charData2=Array.from({length:bank2Count},()=>new Array(10).fill(0));
+  bank2Cells.forEach(({slot,pixels})=>{ charData2[slot-128]=[...pixels].reverse().map(rowToByte); });
+  const allChars2Lines=charData2.map((bytes,i)=>
+    '        .byte   '+bytes.map(b=>hex2(b)).join(',')+'  ; '+hex2(i)+' (attr $E8)'
+  );
+
+  // ── Build subroutines (shared across all animations) ─────────────────────
+  const ATTR_BLK='$10';
+  const CHAR_BLK=hex2(BLANK_SLOT);
+  let definedCalcPtr=false;
+
+  const eraseMap=new Map(), eraseSubs=[];
+  function getEraseSub(f){ return 'erase_n_cols'; }  // v11: one generic runtime eraser
+
+  // ── v11 op tables: 4 bytes/cell [colOff, absRow, attr, code], $80 = end ──
+  // attr $FF = "restore background from LEVEL_MAP" (transitions' vacated cells)
+  let tableBytes=0;
+  function emitOpTable(label,desc,ops){
+    const L=[]; L.push('; celllist: '+desc+' ('+ops.length+' ops, '+(ops.length*4+1)+' bytes)');
+    L.push(label+':');
+    ops.forEach(o=>L.push('        .byte   '+hex2(o[0]&0xFF)+','+hex2(o[1])+','+hex2(o[2])+','+hex2(o[3])));
+    L.push('        .byte   $80            ; end of list'); L.push('');
+    tableBytes+=ops.length*4+1;
+    return L.join('\n');
+  }
+
+  const drawMap=new Map(), drawSubs=[];
+  let drawSubIdx=0;
+  function getDrawSub(f,slots){
+    const key=f.cols+'_'+slots.join(',');
+    if(!drawMap.has(key)){
+      const label='dtb_'+drawSubIdx++;
+      drawMap.set(key,label);
+      const ops=[];
+      for(let col=0;col<f.cols;col++)for(let row=0;row<ROWS;row++){
+        const ci=colMajorIdx(col,row,f.rows);
+        const cellData=f.cells[ci]||blankCell();
+        if(isBlankCell(cellData)) continue;   // transparency: background shows through
+        const cc=ci<slots.length?slots[ci]:BLANK_SLOT;
+        ops.push([col,SPR_ROW+row,slotAttr(cc),slotCode(cc)]);
+      }
+      drawSubs.push(emitOpTable(label,'full draw '+f.cols+'×'+f.rows,ops));
+    }
+    return drawMap.get(key);
+  }
+
+  // ── TRANSITION SUBS (v9) ──────────────────────────────────────────────────
+  // One single-pass sub per (prevFrame → curFrame, dx) pair. Called with
+  // TEMP4 = NEW base column; the old frame is assumed at TEMP4-dx (guaranteed
+  // by the play code: dx = moveDir + (cur.x_off - prev.x_off), and clamped
+  // moves fall back to the generic erase+draw path).
+  // For each cell of the union footprint (in new-frame-relative columns):
+  //   • new non-blank, differs from old → draw it
+  //   • new blank, old non-blank        → restore background from LEVEL_MAP
+  //   • identical slot in both / both blank → no code at all
+  // Zero flicker: the sprite is never blanked before redraw.
+  const transMap=new Map(), transSubs=[];
+  let transIdx=0, transCellsEmitted=0, transCellsSkipped=0;
+  function getTransSub(prevF,prevSlots,f,slots,dx){
+    const key=dx+'|'+prevF.cols+':'+prevSlots.join(',')+'|'+f.cols+':'+slots.join(',');
+    if(transMap.has(key)) return transMap.get(key);
+    const label='ttb_'+transIdx++;
+    transMap.set(key,label);
+    const ops=[];
+    const cMin=Math.min(0,-dx);
+    const cMax=Math.max(f.cols,prevF.cols-dx)-1;
+    for(let c=cMin;c<=cMax;c++){
+      for(let row=0;row<ROWS;row++){
+        const inNew=c>=0&&c<f.cols;
+        const co=c+dx;
+        const inOld=co>=0&&co<prevF.cols;
+        const newCell=inNew?(f.cells[colMajorIdx(c,row,f.rows)]||blankCell()):blankCell();
+        const oldCell=inOld?(prevF.cells[colMajorIdx(co,row,prevF.rows)]||blankCell()):blankCell();
+        const nB=isBlankCell(newCell), oB=isBlankCell(oldCell);
+        if(nB&&oB){transCellsSkipped++;continue;}
+        const nSlot=(!nB&&inNew)?slots[colMajorIdx(c,row,f.rows)]:BLANK_SLOT;
+        const oSlot=(!oB&&inOld)?prevSlots[colMajorIdx(co,row,prevF.rows)]:BLANK_SLOT;
+        if(!nB&&!oB&&nSlot===oSlot){transCellsSkipped++;continue;}
+        transCellsEmitted++;
+        if(!nB) ops.push([c,SPR_ROW+row,slotAttr(nSlot),slotCode(nSlot)]);
+        else    ops.push([c,SPR_ROW+row,0xFF,0x00]);   // vacated cell → restore background
+      }
+    }
+    transSubs.push(emitOpTable(label,'transition id='+(prevF.id||'?')+'\u2192'+(f.id||'?')+' dx='+dx,ops));
+    return label;
+  }
+
+  // Emit "A = clamped PLAYER_X + x_off" with unique label suffix
+  function emitNewX(lines,effOff,suf){
+    lines.push('        lda     @PLAYER_X');
+    if(effOff>0) lines.push('        add     %'+effOff+',A     ; frame x_off');
+    else if(effOff<0) lines.push('        sub     %'+(-effOff)+',A     ; frame x_off (mirrored)');
+    lines.push('        cmp     %40,A');
+    lines.push('        jl      @nx_'+suf);
+    lines.push('        mov     %39,A');
+    lines.push('nx_'+suf+':');
+  }
+
+  // Pre-build all subs
+  animations.forEach((anim,ai)=>{
+    anim.frames.forEach((f,fi)=>{
+      getEraseSub(f); getDrawSub(f,animSlotArrays[ai][fi]);
+    });
+  });
+
+  // ── Key code equates ─────────────────────────────────────────────────────
+  const keyCodes={
+    LEFT:'$83', RIGHT:'$81', UP:'$80', DOWN:'$82',
+    SPACE:'$20', ENTER:'$0D', NONE:null
+  };
+  // Multiple key codes per direction (arrow + letter variants)
+  const keyAlternates={
+    LEFT: ['$83','$61','$41'],   // LEFT arrow, 'a', 'A'
+    RIGHT:['$81','$72','$52'],   // RIGHT arrow, 'r', 'R'
+    UP:   ['$80','$7A','$5A'],   // UP arrow, 'z', 'Z'
+    DOWN: ['$82','$73','$53'],   // DOWN arrow, 's', 'S'
+    SPACE:['$20'],
+    ENTER:['$0D'],
+    NONE: []
+  };
+
+  // ── Per-animation frame sequence subroutines ─────────────────────────────
+  // Each animation → one "play" subroutine that:
+  //   - erases prev frame, draws current frame, delays
+  //   - advances ANIM_FRAME counter
+  //   - returns when frame sequence completes (or loops)
+  // SRAM vars (all in safe $C3F0+ range, not used by MIXT API):
+  //   ANIM_IDX   ($C3F0) = current animation index (0..N-1)
+  //   ANIM_FRAME ($C3F1) = current frame within animation
+  //   PLAYER_COL ($C3F2) = player screen column (x_off of frame 0)
+
+  const animPlaySubs=[];
+  animations.forEach((anim,ai)=>{
+    if(!anim.frames.length) return;
+    const isIdle = !anim.key || anim.key==='NONE';
+    const subName='play_anim_'+ai;
+    const lines=[];
+    lines.push('; ── Animation: '+anim.name+' (key='+anim.key+') ──────────');
+    lines.push(subName+':');
+
+    // For idle animation: frames only run on entry (ANIM_NEW=1).
+    // ANIM_NEW is consumed by frame 0's generic-entry branch below.
+    if(isIdle){
+      lines.push('        lda     @ANIM_NEW');
+      lines.push('        jz      @'+subName+'_nodelay  ; already on screen → just wait for key');
+    }
+
+    anim.frames.forEach((f,fi)=>{
+      const slots=animSlotArrays[ai][fi];
+      const prevIdx=fi>0?fi-1:anim.frames.length-1;
+      const prevF=anim.frames[prevIdx];
+      const prevSlots=animSlotArrays[ai][prevIdx];
+      getEraseSub(prevF); // generic runtime eraser (fallback path)
+      const drawLabel=getDrawSub(f,slots);
+      const moveDir=anim.key==='RIGHT'?1:anim.key==='LEFT'?-1:0;
+      // FILMSTRIP MODE: keyed anim whose frames carry nonzero x_off — the
+      // per-frame screen advance is encoded in x_off (walkman capture model).
+      // PLAYER_X then moves only at the cycle wrap, by x_advance
+      // (auto = last frame's x_off + 1 → smooth 1-col step at wrap).
+      const maxXoff=Math.max(0,...anim.frames.map(q=>q.x_off||0));
+      const filmstrip=moveDir!==0 && anim.frames.some(q=>(q.x_off||0)!==0);
+      const dirMul=(moveDir===-1)?-1:1;
+      const eff=q=>dirMul*(q.x_off||0);
+      const xadv=(anim.x_advance>0?anim.x_advance:((anim.frames[anim.frames.length-1].x_off||0)+1));
+      const dx=(filmstrip?0:moveDir)+eff(f)-eff(prevF)+((filmstrip&&fi===0)?moveDir*xadv:0);
+      const transLabel=getTransSub(prevF,prevSlots,f,slots,dx);
+      const P=ai+'_'+fi;
+
+      lines.push('; Frame '+fi+' id='+(f.id||'?')+' x_off='+(f.x_off||0)+' (transition from frame '+prevIdx+', dx='+dx+')');
+
+      // MOVE with clamp — a CLAMPED move breaks the compile-time dx assumption,
+      // so it falls back to the generic erase+draw path
+      if(filmstrip){
+        if(fi===0){
+          // ENTRY CHECK FIRST: the wrap advance below is the once-per-cycle
+          // PLAYER_X catch-up — it must NOT run on cross-animation entry,
+          // or the first keypress teleports the sprite by x_advance columns.
+          lines.push('        lda     @ANIM_NEW');
+          lines.push('        jnz     @gen_'+P+'      ; cross-animation entry → generic redraw');
+          // cycle wrap: advance PLAYER_X by x_advance. If blocked by the wall,
+          // FOLD the accumulated x_off into PLAYER_X and HOLD the last pose
+          // (walking into a wall = stand still; replaying the cycle would snap back).
+          // NOTE: fs_fold/fs_hold live at the END of the play sub — far beyond
+          // the ±127-byte relative-branch range. Conditionals are inverted into
+          // a short local skip over an absolute 'br' trampoline.
+          if(moveDir===1){
+            const hi=40-maxXoff-xadv;   // X < hi → after +xadv, X+maxXoff ≤ 39
+            lines.push('        lda     @PLAYER_X');
+            lines.push('        cmp     %'+hi+',A');
+            lines.push('        jl      @fsw_'+P);
+            lines.push('        br      @fs_fold_'+ai+'  ; wall — fold x_off into X, hold pose');
+            lines.push('fsw_'+P+':');
+            lines.push('        add     %'+xadv+',A     ; filmstrip wrap advance');
+            lines.push('        sta     @PLAYER_X');
+          } else {
+            const lo=2+maxXoff+xadv;    // X ≥ lo → after −xadv, X−maxXoff ≥ 2
+            lines.push('        lda     @PLAYER_X');
+            lines.push('        cmp     %'+lo+',A');
+            lines.push('        jhs     @fsw_'+P);
+            lines.push('        br      @fs_fold_'+ai+'  ; wall — fold x_off into X, hold pose');
+            lines.push('fsw_'+P+':');
+            lines.push('        sub     %'+xadv+',A     ; filmstrip wrap advance');
+            lines.push('        sta     @PLAYER_X');
+          }
+        }
+        // mid-cycle: no PLAYER_X movement — the x_offs carry the motion
+      } else if(moveDir===1){
+        lines.push('        lda     @PLAYER_X');
+        lines.push('        cmp     %38,A');
+        lines.push('        jge     @gen_'+P+'      ; pinned at right wall → generic redraw');
+        lines.push('        inc     A');
+        lines.push('        sta     @PLAYER_X');
+      } else if(moveDir===-1){
+        lines.push('        lda     @PLAYER_X');
+        lines.push('        cmp     %2,A');
+        lines.push('        jl      @gen_'+P+'      ; pinned at left wall → generic redraw');
+        lines.push('        dec     A');
+        lines.push('        sta     @PLAYER_X');
+      }
+      if(fi===0&&!filmstrip){
+        // Frame 0 may be entered from ANY other animation/position:
+        // the compile-time "prev = last frame of this anim" only holds on loop-around.
+        lines.push('        lda     @ANIM_NEW');
+        lines.push('        jnz     @gen_'+P+'      ; cross-animation entry → generic redraw');
+      }
+      // FAST PATH: single-pass transition — writes only changed cells, no flicker
+      emitNewX(lines,eff(f),'t'+P);
+      lines.push('        mov     A,TEMP4');
+      lines.push('        movd    %'+transLabel+',TEMP2');
+      lines.push('        call    @run_celllist');
+      lines.push('        br      @fdone_'+P);
+      // GENERIC PATH: erase previous footprint (any anim, any width), full draw
+      lines.push('gen_'+P+':');
+      lines.push('        clr     A');
+      lines.push('        sta     @ANIM_NEW');
+      if(filmstrip&&fi===0){
+        // entry too close to the wall → hold current display until key changes
+        // (running the cycle here would need clamped draws + snap; a clamp-down
+        //  would visibly teleport the sprite)
+        if(moveDir===1){
+          lines.push('        lda     @PLAYER_X');
+          lines.push('        cmp     %'+(40-maxXoff)+',A');
+          lines.push('        jl      @fse_'+P);
+          lines.push('        br      @fs_hold_'+ai+'  ; at wall on entry → hold');
+          lines.push('fse_'+P+':');
+        } else {
+          lines.push('        lda     @PLAYER_X');
+          lines.push('        cmp     %'+(2+maxXoff)+',A');
+          lines.push('        jhs     @fse_'+P);
+          lines.push('        br      @fs_hold_'+ai+'  ; at wall on entry → hold');
+          lines.push('fse_'+P+':');
+        }
+      }
+      lines.push('        lda     @PREV_X');
+      lines.push('        mov     A,TEMP4        ; erase base col = PREV_X');
+      lines.push('        lda     @PREV_COLS');
+      lines.push('        call    @erase_n_cols  ; erase PREV_COLS cols at TEMP4');
+      emitNewX(lines,eff(f),'g'+P);
+      lines.push('        mov     A,TEMP4');
+      lines.push('        movd    %'+drawLabel+',TEMP2');
+      lines.push('        call    @run_celllist');
+      lines.push('fdone_'+P+':');
+      // PREV_X = actual draw column (PLAYER_X after move, INCLUDING x_off),
+      // clamped IDENTICALLY to the draw column — an unclamped PREV_X at the
+      // right wall (e.g. 41) makes the next erase miss the real draw col (39)
+      lines.push('        lda     @PLAYER_X');
+      if(eff(f)>0) lines.push('        add     %'+eff(f)+',A     ; include frame x_off');
+      else if(eff(f)<0) lines.push('        sub     %'+(-eff(f))+',A     ; include frame x_off (mirrored)');
+      lines.push('        cmp     %40,A');
+      lines.push('        jl      @px_'+P);
+      lines.push('        mov     %39,A          ; clamp like the draw');
+      lines.push('px_'+P+':');
+      lines.push('        sta     @PREV_X        ; where sprite was actually drawn');
+      lines.push('        mov     %'+f.cols+',A');
+      lines.push('        sta     @PREV_COLS     ; width of drawn sprite');
+      // Delay — per-frame duration (VBL frames); falls back to FRAMES_PER_STEP.
+      // To hold a pose longer, set the frame's duration instead of duplicating it.
+      const durF=(f.duration>=1&&f.duration<=255)?Math.round(f.duration):0;
+      if(durF&&durF!==3) lines.push('        mov     %'+durF+',A       ; frame duration');
+      else lines.push('        mov     %FRAMES_PER_STEP,A');
+      lines.push('        sta     @FRAME_CTR');
+      lines.push('        call    @wait_frames');
+    // After delay: check key — same key held → continue, no key or different → exit
+    lines.push('        mov     VALUE0,A       ; check key after frame delay');
+    // No key → exit (go back to stand)
+    lines.push('        cmp     %KEY_NONE_EXL,A');
+    lines.push('        jeq     @d'+ai+'_'+fi+'_exit');
+    lines.push('        cmp     %KEY_NONE_EXT,A');
+    lines.push('        jeq     @d'+ai+'_'+fi+'_exit');
+    lines.push('        cmp     %KEY_NONE_REL,A');
+    lines.push('        jeq     @d'+ai+'_'+fi+'_exit');
+    lines.push('        cmp     %$00,A         ; boot / Exeltel idle');
+    lines.push('        jeq     @d'+ai+'_'+fi+'_exit');
+    // Same key still held → continue to next frame
+    const myKeyCodes = keyAlternates[anim.key]||[];
+    myKeyCodes.forEach(kcode=>{
+      lines.push('        cmp     %'+kcode+',A');
+      lines.push('        jeq     @d'+ai+'_'+fi+'_nk');
+    });
+    // Any other key → exit so main_loop can dispatch.
+    // FILMSTRIP: fold this frame's x_off into PLAYER_X on exit, so the next
+    // animation (STAND, other direction…) enters at the column where the
+    // sprite is actually drawn — otherwise release snaps back by x_off.
+    lines.push('d'+ai+'_'+fi+'_exit:');
+    {
+      const fsE=(anim.key==='RIGHT'||anim.key==='LEFT') && anim.frames.some(q=>(q.x_off||0)!==0);
+      const dmE=(anim.key==='LEFT')?-1:1;
+      const effE=dmE*(f.x_off||0);
+      if(fsE&&effE!==0){
+        lines.push('        lda     @PLAYER_X');
+        if(effE>0){
+          lines.push('        add     %'+effE+',A     ; fold x_off (exit mid-cycle)');
+          lines.push('        cmp     %39,A');
+          lines.push('        jl      @dxf_'+ai+'_'+fi);
+          lines.push('        mov     %38,A');
+        } else {
+          lines.push('        sub     %'+(-effE)+',A     ; fold x_off (exit mid-cycle, mirrored)');
+          lines.push('        cmp     %2,A');
+          lines.push('        jhs     @dxf_'+ai+'_'+fi);
+          lines.push('        mov     %2,A');
+        }
+        lines.push('dxf_'+ai+'_'+fi+':');
+        lines.push('        sta     @PLAYER_X');
+      }
+    }
+    lines.push('        rets');
+    lines.push('d'+ai+'_'+fi+'_nk:');
+    });
+    lines.push('        rets');
+    // Filmstrip wall handling: fold accumulated x_off into PLAYER_X, then hold
+    // the last displayed pose while the direction key stays down.
+    {
+      const moveDirA=anim.key==='RIGHT'?1:anim.key==='LEFT'?-1:0;
+      const maxXoffA=Math.max(0,...anim.frames.map(q=>q.x_off||0));
+      const filmstripA=moveDirA!==0 && anim.frames.some(q=>(q.x_off||0)!==0);
+      if(filmstripA){
+        lines.push('fs_fold_'+ai+':          ; A = PLAYER_X (from the wrap guard)');
+        if(moveDirA===1){
+          lines.push('        add     %'+maxXoffA+',A');
+          lines.push('        cmp     %39,A');
+          lines.push('        jl      @fsf2_'+ai);
+          lines.push('        mov     %38,A');
+          lines.push('fsf2_'+ai+':');
+        } else {
+          lines.push('        sub     %'+maxXoffA+',A');
+          lines.push('        cmp     %2,A');
+          lines.push('        jhs     @fsf2_'+ai);
+          lines.push('        mov     %2,A');
+          lines.push('fsf2_'+ai+':');
+        }
+        lines.push('        sta     @PLAYER_X      ; X now ≈ drawn col → STAND entry matches');
+        lines.push('fs_hold_'+ai+':');
+        lines.push('        mov     %FRAMES_PER_STEP,A');
+        lines.push('        sta     @FRAME_CTR');
+        lines.push('        call    @wait_frames');
+        lines.push('        mov     VALUE0,A');
+        (keyAlternates[anim.key]||[]).forEach(kc=>{
+          lines.push('        cmp     %'+kc+',A');
+          lines.push('        jeq     @fs_hold_'+ai+'  ; still pressing into the wall');
+        });
+        lines.push('        rets                   ; released / other key → dispatch');
+      }
+    }
+    // For idle: add _nodelay entry point — just delay+key-check, no erase/draw
+    if(isIdle){
+      lines.push(subName+'_nodelay:');
+      lines.push('        mov     %FRAMES_PER_STEP,A');
+      lines.push('        sta     @FRAME_CTR');
+      lines.push('        call    @wait_frames');
+      lines.push('        mov     VALUE0,A');
+      lines.push('        cmp     %KEY_NONE_EXL,A');
+      lines.push('        jeq     @'+subName+'_nodelay  ; still no key, keep waiting');
+      lines.push('        cmp     %KEY_NONE_EXT,A');
+      lines.push('        jeq     @'+subName+'_nodelay');
+      lines.push('        cmp     %KEY_NONE_REL,A');
+      lines.push('        jeq     @'+subName+'_nodelay');
+      lines.push('        cmp     %$00,A         ; boot / Exeltel idle');
+      lines.push('        jeq     @'+subName+'_nodelay');
+      // Any key → exit so main_loop dispatches
+      lines.push('        rets');
+    }
+    lines.push('');
+    animPlaySubs.push({ai, name:anim.name, key:anim.key, label:subName, code:lines.join('\n')});
+  });
+
+  // ── Build ASM ────────────────────────────────────────────────────────────
+  const totalFrames=animations.reduce((s,a)=>s+a.frames.length,0);
+  const stats='; '+animations.length+' animations, '+totalFrames+' total frames, '
+    +usedCells.length+' unique cells (BAGC1: '+usedCells.filter(c=>c.slot<128).length+', BAGC2: '+bank2Cells.length+'), '
+    +drawMap.size+' draw tables + '+transMap.size+' transition tables = '+tableBytes+' table bytes '
+    +'('+transCellsEmitted+' transition cells, '+transCellsSkipped+' skipped)';
+
+  const asmLines=[];
+  asmLines.push('; ============================================================');
+  asmLines.push('; '+safeName+' — EXLCHAR v11 — table-driven animation engine (transition rendering)');
+  asmLines.push(stats);
+  asmLines.push('; KEY BINDINGS:');
+  animations.forEach(a=>asmLines.push(';   '+a.name+': key='+a.key+(a.isDefault?' [DEFAULT]':'')));
+  asmLines.push('; ============================================================');
+  asmLines.push('');
+  asmLines.push('#include "c:/jeux/emulateur/exl/tasm/H/7020.equ"');
+  asmLines.push('#include "c:/jeux/emulateur/exl/tasm/H/3556.equ"');
+  asmLines.push('');
+  asmLines.push('SCR             .equ    $7340');
+  asmLines.push('BAGC1_ADR       .equ    $0500');
+  asmLines.push('SPR_ROW         .equ    '+SPR_ROW);
+  asmLines.push('FRAMES_PER_STEP .equ    3       ; VBL frames per animation step (50/3 ≈ 16fps)');
+
+  asmLines.push('; Key codes');
+  asmLines.push('KEY_LEFT        .equ    $83     ; arrow left');
+  asmLines.push('KEY_A_UP        .equ    $41     ; A (uppercase)');
+  asmLines.push('KEY_A_LO        .equ    $61     ; a (lowercase)');
+  asmLines.push('KEY_RIGHT       .equ    $81     ; arrow right');
+  asmLines.push('KEY_R_UP        .equ    $52     ; R (uppercase)');
+  asmLines.push('KEY_R_LO        .equ    $72     ; r (lowercase)');
+  asmLines.push('KEY_UP          .equ    $80     ; arrow up');
+  asmLines.push('KEY_Z_UP        .equ    $5A     ; Z');
+  asmLines.push('KEY_DOWN        .equ    $82     ; arrow down');
+  asmLines.push('KEY_SPACE       .equ    $20');
+  asmLines.push('KEY_ENTER       .equ    $0D');
+  asmLines.push('KEY_NONE_EXL    .equ    $86     ; no-key EXL100');
+  asmLines.push('KEY_NONE_EXT    .equ    $89     ; no-key Exeltel');
+  asmLines.push('KEY_NONE_REL    .equ    $04     ; key-released sentinel (see mixt_api wait_relkey)');
+  asmLines.push('; NOTE: $00 is also treated as no-key (boot value / Exeltel idle)');
+  asmLines.push('; Game state');
+  asmLines.push('ANIM_CUR        .equ    $C3F0   ; current animation index');
+  asmLines.push('PLAYER_X        .equ    $C3F1   ; player screen column (0..39)');
+  asmLines.push('PREV_X          .equ    $C3F2   ; player X before last move (for erase)');
+  asmLines.push('PREV_COLS       .equ    $C3F3   ; cols width of last drawn frame (for erase)');
+  asmLines.push('ANIM_NEW        .equ    $C3F4   ; 1 = animation just switched, need full redraw');
+  asmLines.push('FRAME_CTR       .equ    $C3F5   ; frame counter for animation speed control');
+  asmLines.push('; v11 runtime-executor work vars ($C3E0-$C3EB)');
+  asmLines.push('OP_PL           .equ    $C3E0   ; celllist table pointer (lo)');
+  asmLines.push('OP_PH           .equ    $C3E1   ; celllist table pointer (hi)');
+  asmLines.push('OP_B0           .equ    $C3E2   ; current op: column offset');
+  asmLines.push('OP_ROW          .equ    $C3E3   ; current op: absolute row');
+  asmLines.push('OP_ATTR         .equ    $C3E4   ; current op: attr ($FF = bg restore)');
+  asmLines.push('OP_CODE         .equ    $C3E5   ; current op: char code');
+  asmLines.push('BG_ROW          .equ    $C3E6   ; bg_restore_cell: row');
+  asmLines.push('BG_COL          .equ    $C3E7   ; bg_restore_cell: col');
+  asmLines.push('EW              .equ    $C3E8   ; generic erase: width');
+  asmLines.push('ER_C            .equ    $C3E9   ; generic erase / level init: col');
+  asmLines.push('ER_R            .equ    $C3EA   ; generic erase: row');
+  asmLines.push('LI_ROW          .equ    $C3EB   ; level init: row');
+  asmLines.push('');
+  // LEVEL_ROW_N addressed inline in erase subs using LEVEL_MAP+N*40
+  asmLines.push('        .org    $1000');
+  asmLines.push('');
+  asmLines.push('start:');
+  asmLines.push('        dint');
+  asmLines.push('        mov     %$58,B');
+  asmLines.push('        ldsp');
+  asmLines.push('        movp    P40,A');
+  asmLines.push('        movp    P36,A');
+  asmLines.push('        call    @init_vdp');
+  asmLines.push('        #DEFINE Finit_vdp');
+  asmLines.push('        eint');
+  asmLines.push('        movd    %$0000,TEMP8');
+  asmLines.push('        trap    13');
+  asmLines.push('        ; ── Set BAGC1 base address to $0500 (walkman.asm proven sequence)');
+  asmLines.push('        movp    %$01,P45');
+  asmLines.push('        movp    %$FE,P45');
+  asmLines.push('        movp    %$02,P45');
+  asmLines.push('        movp    %$04,P45');
+  asmLines.push('        movp    %$0C,P45       ; BAGC1 register (12)');
+  asmLines.push('        movp    %$00,P45');
+  asmLines.push('        movp    %$00,P45');
+  asmLines.push('        ; ── Set BAGC3 base address to $0F00 (register 14)');
+  asmLines.push('        movp    %$01,P45');
+  asmLines.push('        movp    %$FE,P45');
+  asmLines.push('        movp    %$02,P45');
+  asmLines.push('        movp    %$0E,P45');
+  asmLines.push('        movp    %$0E,P45       ; BAGC3 register (14)');
+  asmLines.push('        movp    %$00,P45');
+  asmLines.push('        movp    %$00,P45');
+  if(bank2Count>0){
+    asmLines.push('        ; ── Set BAGC2 base address to $0A00 (register 13)');
+    asmLines.push('        movp    %$01,P45');
+    asmLines.push('        movp    %$FE,P45');
+    asmLines.push('        movp    %$02,P45');
+    asmLines.push('        movp    %$09,P45');
+    asmLines.push('        movp    %$0D,P45       ; BAGC2 register (13)');
+    asmLines.push('        movp    %$00,P45');
+    asmLines.push('        movp    %$00,P45');
+  }
+  asmLines.push('        ; ── Load BAGC1 sprite chars ──────────────────────────');
+  asmLines.push('        movd    %ALL_CHARS,TEMP3');
+  asmLines.push('        movd    %BAGC1_ADR,TEMP2');
+  asmLines.push('        mov     %$00,TEMP7             ; first slot = 0: ALL_CHARS[i] → slot i (draw codes start at 0)');
+  asmLines.push('        mov     %128,TEMP4-1');
+  asmLines.push('        trap    19');
+  if(bank2Count>0){
+    asmLines.push('        ; ── Load BAGC2 sprite chars (overflow bank, attr $E8) ──');
+    asmLines.push('        movd    %ALL_CHARS2,TEMP3');
+    asmLines.push('        movd    %$0A00,TEMP2           ; BAGC2 base address');
+    asmLines.push('        mov     %$00,TEMP7');
+    asmLines.push('        mov     %'+bank2Count+',TEMP4-1');
+    asmLines.push('        trap    19');
+  }
+  asmLines.push('        ; ── Load BAGC3 tile chars from level.h ──────────────');
+  asmLines.push('        mov     %BAGC3_TILE_CHAR_COUNT,A');
+  asmLines.push('        jz      @skip_bagc3    ; skip if no BAGC3 tiles');
+  asmLines.push('        movd    %BAGC3_TILE_CHARS,TEMP3');
+  asmLines.push('        movd    %$0F00,TEMP2           ; BAGC3 base address');
+  asmLines.push('        mov     %BAGC3_TILE_SLOT_START,TEMP7 ; first char slot');
+  asmLines.push('        mov     %BAGC3_TILE_CHAR_COUNT,TEMP4-1');
+  asmLines.push('        trap    19');
+  asmLines.push('skip_bagc3:');
+  asmLines.push('        clr     A');
+  asmLines.push('        sta     @BRJOY0');
+  asmLines.push('        sta     @BRJOY0+1');
+  asmLines.push('        sta     @BRTIME');
+  asmLines.push('        sta     @BRTIME+1');
+  asmLines.push('        dint');
+  asmLines.push('        call    @init_textapi');
+  asmLines.push('        #DEFINE Finit_textapi');
+  asmLines.push('        call    @set_25LINE');
+  asmLines.push('        #DEFINE Fset_25LINE');
+  asmLines.push('        movd    %SCR,R1');
+  asmLines.push('        call    @set_vidbuf');
+  asmLines.push('        #DEFINE Fset_vidbuf');
+  asmLines.push('        movd    %SCR,R1');
+  asmLines.push('        call    @set_screen_adr');
+  asmLines.push('        #DEFINE Fset_screen_adr');
+  asmLines.push('        movd    %screen_data2+24,R1');
+  asmLines.push('        call    @set_MIXTMODE');
+  asmLines.push('        #DEFINE Fset_MIXTMODE');
+  asmLines.push('        mov     %FWHITE|BAGC2|BBLACK,A');
+  asmLines.push('        movd    %$0000,TEMP1');
+  asmLines.push('        movd    %$1928,TEMP2');
+  asmLines.push('        call    @set_window');
+  asmLines.push('        #DEFINE Fset_window');
+  asmLines.push('        eint                   ; enable interrupts');
+  asmLines.push('');
+  // Init default animation
+  const defIdx=animations.findIndex(a=>a.isDefault);
+  asmLines.push('        ; Start with default animation: '+defaultAnim.name);
+  asmLines.push('        mov     %'+defIdx+',A');
+  asmLines.push('        sta     @ANIM_CUR');
+  asmLines.push('        clr     A');
+  asmLines.push('        sta     @PLAYER_X      ; start at col 0');
+  asmLines.push('        sta     @PREV_X');
+  asmLines.push('        sta     @PREV_COLS     ; no sprite drawn yet');
+  asmLines.push('        mov     %1,A');
+  asmLines.push('        sta     @ANIM_NEW      ; force draw on first frame');
+  asmLines.push('');
+  asmLines.push('        ; ── Draw full level map ─────────────────────────────────────');
+  asmLines.push('        dint                   ; disable interrupts: TEMP3/6/7 not interrupt-safe');
+  // v11: compact double loop — every cell repainted via bg_restore_cell
+  asmLines.push('        clr     A');
+  asmLines.push('        sta     @LI_ROW');
+  asmLines.push('li_row:');
+  asmLines.push('        clr     A');
+  asmLines.push('        sta     @ER_C          ; col 0..39 (reuses erase counter)');
+  asmLines.push('li_col:');
+  asmLines.push('        lda     @ER_C');
+  asmLines.push('        mov     A,B');
+  asmLines.push('        lda     @LI_ROW');
+  asmLines.push('        call    @bg_restore_cell');
+  asmLines.push('        lda     @ER_C');
+  asmLines.push('        inc     A');
+  asmLines.push('        sta     @ER_C');
+  asmLines.push('        cmp     %40,A');
+  asmLines.push('        jl      @li_col');
+  asmLines.push('        lda     @LI_ROW');
+  asmLines.push('        inc     A');
+  asmLines.push('        sta     @LI_ROW');
+  asmLines.push('        cmp     %25,A');
+  asmLines.push('        jl      @li_row');
+  asmLines.push('');
+  asmLines.push('        eint                   ; re-enable interrupts after level init');
+  asmLines.push('');
+  asmLines.push('main_loop:');
+  if(DBG_KEY){
+    asmLines.push('        ; ── DEBUG: display VALUE0 as 2 hex digits, row 0 cols 38-39 (ROM font)');
+    asmLines.push('        dint');
+    asmLines.push('        mov     %38,B');
+    asmLines.push('        clr     A              ; row 0');
+    asmLines.push('        call    @calcul_pointer');
+    asmLines.push('        movd    TEMP3,TEMP1');
+    asmLines.push('        trap    9');
+    asmLines.push('        mov     %$E0,A         ; attr: BAGC0 ROM font, white on black');
+    asmLines.push('        wvdp(A)');
+    asmLines.push('        mov     VALUE0,A');
+    asmLines.push('        clrc');
+    asmLines.push('        rrc     A');
+    asmLines.push('        clrc');
+    asmLines.push('        rrc     A');
+    asmLines.push('        clrc');
+    asmLines.push('        rrc     A');
+    asmLines.push('        clrc');
+    asmLines.push('        rrc     A              ; A = high nibble');
+    asmLines.push('        call    @dbg_hexdigit');
+    asmLines.push('        wvdp(A)');
+    asmLines.push('        mov     %39,B');
+    asmLines.push('        clr     A');
+    asmLines.push('        call    @calcul_pointer');
+    asmLines.push('        movd    TEMP3,TEMP1');
+    asmLines.push('        trap    9');
+    asmLines.push('        mov     %$E0,A');
+    asmLines.push('        wvdp(A)');
+    asmLines.push('        mov     VALUE0,A');
+    asmLines.push('        and     %$0F,A         ; low nibble');
+    asmLines.push('        call    @dbg_hexdigit');
+    asmLines.push('        wvdp(A)');
+    asmLines.push('        eint');
+  }
+  asmLines.push('        ; ── Read keyboard ──────────────────────────────────');
+  asmLines.push('        mov     VALUE0,A');
+  asmLines.push('        cmp     %KEY_NONE_EXL,A');
+  asmLines.push('        jeq     @no_key');
+  asmLines.push('        cmp     %KEY_NONE_EXT,A');
+  asmLines.push('        jeq     @no_key');
+  asmLines.push('        cmp     %KEY_NONE_REL,A');
+  asmLines.push('        jeq     @no_key');
+  asmLines.push('        cmp     %$00,A         ; boot / Exeltel idle');
+  asmLines.push('        jeq     @no_key');
+  asmLines.push('        ; ── Key dispatch ──');
+  animations.forEach((anim,ai)=>{
+    if(!anim.key||anim.key==='NONE') return;
+    const codes=keyAlternates[anim.key]||[];
+    codes.forEach(kcode=>{
+      asmLines.push('        cmp     %'+kcode+',A       ; '+anim.key+' → '+anim.name);
+      asmLines.push('        jeq     @run_anim_'+ai);
+    });
+  });
+  asmLines.push('no_key:');
+  asmLines.push('        ; no key pressed → if current anim is keyed, reset to default');
+  const defAi=animations.findIndex(a=>a.isDefault);
+  animations.forEach((anim,ai)=>{
+    if(!anim.key||anim.key==='NONE') return; // skip default/unkeyed
+    // If ANIM_CUR points to a keyed anim but no key pressed → back to default
+    asmLines.push('        lda     @ANIM_CUR');
+    asmLines.push('        cmp     %'+ai+',A      ; if current='+anim.name+' (keyed), reset to default');
+    asmLines.push('        jeq     @run_anim_'+defAi);
+  });
+  asmLines.push('        lda     @ANIM_CUR');
+  animations.forEach((anim,ai)=>{
+    if(!anim.frames.length) return;
+    asmLines.push('        cmp     %'+ai+',A');
+    asmLines.push('        jeq     @run_anim_'+ai);
+  });
+  asmLines.push('        br      @main_loop');
+  asmLines.push('');
+  animations.forEach((anim,ai)=>{
+    if(!anim.frames.length) return;
+    asmLines.push('run_anim_'+ai+':');
+    asmLines.push('        lda     @ANIM_CUR');
+    asmLines.push('        cmp     %'+ai+',A');
+    asmLines.push('        jeq     @ra_same_'+ai+'   ; same anim → keep ANIM_NEW=0, no forced redraw');
+    asmLines.push('        mov     %'+ai+',A');
+    asmLines.push('        sta     @ANIM_CUR');
+    asmLines.push('        mov     %1,A');
+    asmLines.push('        sta     @ANIM_NEW      ; signal new animation');
+    asmLines.push('ra_same_'+ai+':');
+    asmLines.push('        call    @play_anim_'+ai);
+    asmLines.push('        br      @main_loop');
+  });
+  // Animation play subroutines
+  if(DBG_KEY){
+    asmLines.push('; ── DEBUG: A(0-15) → ASCII hex digit ──');
+    asmLines.push('dbg_hexdigit:');
+    asmLines.push('        cmp     %10,A');
+    asmLines.push('        jl      @dbh_num');
+    asmLines.push('        add     %7,A           ; A-F');
+    asmLines.push('dbh_num:');
+    asmLines.push('        add     %$30,A');
+    asmLines.push('        rets');
+    asmLines.push('');
+  }
+  asmLines.push('; ── VBL sync subroutine ─────────────────────────────────────────────────');
+  asmLines.push('sync:');
+  asmLines.push('        movp    %$03,P45       ; request VDP status register');
+  asmLines.push('        btjop   %$20,P37,sync  ; wait while ST3=1 (active display)');
+  asmLines.push('        rets');
+  asmLines.push('');
+  asmLines.push('; ── Wait N VBL frames subroutine ────────────────────────────────────────');
+  asmLines.push('; IN: FRAME_CTR already loaded with FRAMES_PER_STEP');
+  asmLines.push('wait_frames:');
+  asmLines.push('        call    @sync          ; wait for VBL');
+  asmLines.push('        ; wait for end of blanking (ST3 goes high = beam active again)');
+  asmLines.push('wf_act: movp    %$03,P45');
+  asmLines.push('        btjzp   %$20,P37,wf_act ; wait while ST3=0 (blanking)');
+  asmLines.push('        lda     @FRAME_CTR');
+  asmLines.push('        dec     A');
+  asmLines.push('        sta     @FRAME_CTR');
+  asmLines.push('        jnz     @wait_frames   ; loop N times');
+  asmLines.push('        rets');
+  asmLines.push('');
+  asmLines.push('; ── Animation play subroutines ──────────────────────────────────────────');
+  animPlaySubs.forEach(s=>asmLines.push(s.code));
+  // ── v11 shared runtime executors (replace all unrolled erase/draw/trans code) ──
+  asmLines.push('; ═══ Runtime cell executors (v11): op tables replace unrolled code ═══════');
+  asmLines.push('; run_celllist: TEMP2 pair = table addr, TEMP4 = base column.');
+  asmLines.push('; Op = 4 bytes [colOff, absRow, attr, code]; attr $FF = restore background;');
+  asmLines.push('; $80 in colOff position = end of table.');
+  asmLines.push('run_celllist:');
+  asmLines.push('        dint           ; ROM IRQ clobbers R5+ — protect table walk + VDP writes');
+  asmLines.push('        mov     TEMP2-1,A');
+  asmLines.push('        sta     @OP_PH');
+  asmLines.push('        mov     TEMP2,A');
+  asmLines.push('        sta     @OP_PL');
+  asmLines.push('rcl_loop:');
+  asmLines.push('        lda     @OP_PH');
+  asmLines.push('        mov     A,TEMP2-1');
+  asmLines.push('        lda     @OP_PL');
+  asmLines.push('        mov     A,TEMP2');
+  asmLines.push('        lda     *TEMP2         ; byte0: colOff or $80 end');
+  asmLines.push('        cmp     %$80,A');
+  asmLines.push('        jeq     @rcl_done');
+  asmLines.push('        sta     @OP_B0');
+  asmLines.push('        add     %1,TEMP2       ; 16-bit pointer++ (no INCD on TMS7000)');
+  asmLines.push('        adc     %0,TEMP2-1');
+  asmLines.push('        lda     *TEMP2         ; byte1: absolute row');
+  asmLines.push('        sta     @OP_ROW');
+  asmLines.push('        add     %1,TEMP2       ; 16-bit pointer++ (no INCD on TMS7000)');
+  asmLines.push('        adc     %0,TEMP2-1');
+  asmLines.push('        lda     *TEMP2         ; byte2: attr ($FF = background restore)');
+  asmLines.push('        sta     @OP_ATTR');
+  asmLines.push('        add     %1,TEMP2       ; 16-bit pointer++ (no INCD on TMS7000)');
+  asmLines.push('        adc     %0,TEMP2-1');
+  asmLines.push('        lda     *TEMP2         ; byte3: char code');
+  asmLines.push('        sta     @OP_CODE');
+  asmLines.push('        add     %1,TEMP2       ; 16-bit pointer++ (no INCD on TMS7000)');
+  asmLines.push('        adc     %0,TEMP2-1');
+  asmLines.push('        mov     TEMP2-1,A      ; save advanced pointer');
+  asmLines.push('        sta     @OP_PH');
+  asmLines.push('        mov     TEMP2,A');
+  asmLines.push('        sta     @OP_PL');
+  asmLines.push('        lda     @OP_B0');
+  asmLines.push('        add     TEMP4,A        ; absolute column (signed offset wraps)');
+  asmLines.push('        cmp     %40,A');
+  asmLines.push('        jhs     @rcl_loop      ; off-screen (incl. negative wrap) → skip');
+  asmLines.push('        mov     A,B');
+  asmLines.push('        lda     @OP_ATTR');
+  asmLines.push('        cmp     %$FF,A');
+  asmLines.push('        jeq     @rcl_bg');
+  asmLines.push('        lda     @OP_ROW');
+  asmLines.push('        call    @calcul_pointer');
+  asmLines.push('        #DEFINE Fcalcul_pointer');
+  asmLines.push('        movd    TEMP3,TEMP1');
+  asmLines.push('        trap    9');
+  asmLines.push('        lda     @OP_ATTR');
+  asmLines.push('        wvdp(A)');
+  asmLines.push('        lda     @OP_CODE');
+  asmLines.push('        wvdp(A)');
+  asmLines.push('        br      @rcl_loop');
+  asmLines.push('rcl_bg:');
+  asmLines.push('        lda     @OP_ROW');
+  asmLines.push('        call    @bg_restore_cell');
+  asmLines.push('        br      @rcl_loop');
+  asmLines.push('rcl_done:');
+  asmLines.push('        eint');
+  asmLines.push('        rets');
+  asmLines.push('');
+  asmLines.push('; bg_restore_cell: A = absolute row, B = column → repaint one background cell');
+  asmLines.push('; (shared by transitions, generic erase, and level init)');
+  asmLines.push('bg_restore_cell:');
+  asmLines.push('        sta     @BG_ROW');
+  asmLines.push('        mov     B,A');
+  asmLines.push('        sta     @BG_COL');
+  asmLines.push('        lda     @BG_COL');
+  asmLines.push('        mov     A,B');
+  asmLines.push('        lda     @BG_ROW');
+  asmLines.push('        call    @calcul_pointer');
+  asmLines.push('        movd    TEMP3,TEMP1');
+  asmLines.push('        trap    9');
+  asmLines.push('        movd    %LEVEL_MAP,TEMP2');
+  asmLines.push('        lda     @BG_ROW');
+  asmLines.push('        mpy     %40,A          ; A:B = row*40 (MPY: 16-bit product in A:B)');
+  asmLines.push('        add     R1,TEMP2       ; R1 = B (row*40 low)');
+  asmLines.push('        adc     R0,TEMP2-1     ; R0 = A (row*40 high)');
+  asmLines.push('        lda     @BG_COL');
+  asmLines.push('        add     R0,TEMP2       ; R0 = A (col)');
+  asmLines.push('        adc     %0,TEMP2-1');
+  asmLines.push('        lda     *TEMP2         ; tile index from LEVEL_MAP');
+  asmLines.push('        cmp     %$FF,A');
+  asmLines.push('        jne     @bgc_tile');
+  asmLines.push('        mov     %$10,A         ; air → BAGC1 blank');
+  asmLines.push('        wvdp(A)');
+  asmLines.push('        mov     %$7F,A');
+  asmLines.push('        wvdp(A)');
+  asmLines.push('        rets');
+  asmLines.push('bgc_tile:');
+  asmLines.push('        clrc');
+  asmLines.push('        rl      A              ; ×2 for TILE_CHARS (attr,char)');
+  asmLines.push('        mov     A,B');
+  asmLines.push('        lda     @TILE_CHARS(B)');
+  asmLines.push('        wvdp(A)');
+  asmLines.push('        lda     @TILE_CHARS+1(B)');
+  asmLines.push('        wvdp(A)');
+  asmLines.push('        rets');
+  asmLines.push('');
+  asmLines.push('; Generic erase: A = width in cols, TEMP4 = base col — repaint background');
+  asmLines.push('erase_n_cols:');
+  asmLines.push('        dint');
+  asmLines.push('        sta     @EW');
+  asmLines.push('        cmp     %0,A');
+  asmLines.push('        jeq     @en_done       ; width 0 = nothing drawn yet');
+  asmLines.push('        clr     A');
+  asmLines.push('        sta     @ER_C');
+  asmLines.push('en_col:');
+  asmLines.push('        clr     A');
+  asmLines.push('        sta     @ER_R');
+  asmLines.push('en_row:');
+  asmLines.push('        lda     @ER_C');
+  asmLines.push('        add     TEMP4,A');
+  asmLines.push('        cmp     %40,A');
+  asmLines.push('        jhs     @en_next       ; off-screen col → skip');
+  asmLines.push('        mov     A,B');
+  asmLines.push('        lda     @ER_R');
+  asmLines.push('        add     %'+(''+SPR_ROW)+',A     ; + sprite top row');
+  asmLines.push('        call    @bg_restore_cell');
+  asmLines.push('en_next:');
+  asmLines.push('        lda     @ER_R');
+  asmLines.push('        inc     A');
+  asmLines.push('        sta     @ER_R');
+  asmLines.push('        cmp     %8,A');
+  asmLines.push('        jl      @en_row');
+  asmLines.push('        lda     @ER_C');
+  asmLines.push('        inc     A');
+  asmLines.push('        sta     @ER_C');
+  asmLines.push('        cmpa    @EW');
+  asmLines.push('        jl      @en_col');
+  asmLines.push('en_done:');
+  asmLines.push('        eint');
+  asmLines.push('        rets');
+  asmLines.push('');
+  definedCalcPtr=true;
+  asmLines.push('; ── Draw tables ('+drawMap.size+') — full draws for cross-anim entry ──────────');
+  drawSubs.forEach(s=>asmLines.push(s));
+  asmLines.push('; ── Transition tables ('+transMap.size+') — single-pass updates, no flicker ────');
+  transSubs.forEach(s=>asmLines.push(s));
+  // Data
+  asmLines.push('screen_data2:');
+  asmLines.push('        .byte   $00,$00,$00,$00,$00,$00,$00,$00,$00,$00');
+  asmLines.push('        .byte   $00,$00,$00,$00,$00,$00,$00,$00,$00,$00');
+  asmLines.push('        .byte   $00,$00,$00,$00,$00');
+  asmLines.push('');
+  asmLines.push('ALL_CHARS:');
+  allCharsLines.forEach(l=>asmLines.push(l));
+  if(bank2Count>0){
+    asmLines.push('');
+    asmLines.push('; ── BAGC2 sprite chars (overflow bank: slots 128+, attr $E8) ──');
+    asmLines.push('ALL_CHARS2:');
+    allChars2Lines.forEach(l=>asmLines.push(l));
+  }
+  asmLines.push('');
+  asmLines.push('; NOTE: level.h is included HERE (after .org) so data lands in ROM space');
+  asmLines.push('; Do NOT include level.h before .org — data would land in register file ($0000-$00FF)!');
+  asmLines.push('#include "level.h"            ; tile data and level map (must be after .org $1000)');
+  asmLines.push('#include "mixt_api.asm"');
+  asmLines.push('');
+  asmLines.push('        .end');
+
+  dl(asmLines.join('\n'), safeName.toLowerCase()+'.asm');
+};
+
+// ── Export pre-flight wrapper: skip empty animations, require a usable default ──
+// (session files can contain animations with 0 frames, e.g. a cleared WALK_LEFT;
+// exporting them would generate broken play subs)
+{
+  const __rawWalkmanExport=document.getElementById('btn-export-walkman').onclick;
+  document.getElementById('btn-export-walkman').onclick=()=>{
+    const all=animations;
+    const empty=all.filter(a=>!a.frames.length);
+    const usable=all.filter(a=>a.frames.length>0);
+    if(!usable.length){ alert('Export aborted: no animation has any frames.'); return; }
+    if(!usable.some(a=>a.isDefault)){
+      alert('Export aborted: no DEFAULT animation with at least 1 frame.\n'
+        +'Tick "default" on your idle animation (key=NONE).'
+        +(all.some(a=>a.isDefault)?'\n(Your current DEFAULT animation has 0 frames.)':''));
+      return;
+    }
+    const badDef=usable.find(a=>a.isDefault&&a.key&&a.key!=='NONE');
+    if(badDef){
+      alert('Export aborted: the DEFAULT animation "'+badDef.name+'" has key='+badDef.key+'.\n\n'
+        +'A keyed default WALKS BY ITSELF whenever no key is pressed: the idle\n'
+        +'dispatcher re-runs the default every loop, and each pass executes its\n'
+        +'movement step (this is the "sprite drifts '+(badDef.key==='LEFT'?'left':badDef.key.toLowerCase())+' alone" bug).\n\n'
+        +'Fix: set key=NONE on "'+badDef.name+'" (idle pose), and put the walk\n'
+        +'frames in a separate animation bound to '+badDef.key+'.');
+      return;
+    }
+    if(empty.length) alert('Note: skipping empty animation(s): '+empty.map(a=>a.name).join(', '));
+    animations=usable;
+    try{ __rawWalkmanExport(); }
+    finally{ animations=all; }
+  };
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// SPRITE IMPORT — writes directly to frame.cells[]
+// ════════════════════════════════════════════════════════════════════════════
+const SPR_ROWS_FIXED=8;
+let sprImg=null, sprDragging=false, sprDragOx=0, sprDragOy=0, sprDragSX=0, sprDragSY=0;
+
+document.getElementById('sprite-file').onchange=e=>sprLoadFile(e.target.files[0]);
+
+function sprLoadFile(f){
+  if(!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    sprImg=new Image();
+    sprImg.onload=()=>{
+      document.getElementById('sprite-info').textContent=sprImg.width+'×'+sprImg.height+'px — '+f.name;
+      document.getElementById('spr-dropzone').style.borderColor='#aaa';
+      document.getElementById('spr-cols').value=Math.max(1,Math.min(8,Math.ceil(sprImg.width/8)));
+      document.getElementById('spr-xoff').value=0;
+      document.getElementById('spr-yoff').value=0;
+      spriteMoved();
+    };
+    sprImg.src=ev.target.result;
+  };
+  r.readAsDataURL(f);
+}
+
+function sprNudge(axis,delta){
+  const id=axis==='x'?'spr-xoff':'spr-yoff';
+  const el=document.getElementById(id);
+  el.value=(+el.value||0)+delta;
+  spriteMoved();
+}
+
+function sprSnap(){
+  const xe=document.getElementById('spr-xoff'), ye=document.getElementById('spr-yoff');
+  xe.value=Math.round((+xe.value||0)/8)*8;
+  ye.value=Math.round((+ye.value||0)/10)*10;
+  spriteMoved();
+}
+
+function spriteMoved(){
+  if(!sprImg) return;
+  const xoff=+document.getElementById('spr-xoff').value||0;
+  const yoff=+document.getElementById('spr-yoff').value||0;
+  const cols=Math.max(1,Math.min(8,+document.getElementById('spr-cols').value||2));
+  const thresh=+document.getElementById('spr-thresh').value||128;
+  const invert=document.getElementById('spr-invert').checked;
+
+  document.getElementById('spr-coords').textContent=`x=${xoff} y=${yoff} | ${cols}×${SPR_ROWS_FIXED} chars`;
+
+  // Draw screenshot
+  const wrap=document.getElementById('sprite-canvas-wrap');
+  const ww=wrap.clientWidth||400, wh=260;
+  const src=document.getElementById('sprite-src-canvas');
+  src.width=ww; src.height=wh;
+  const sctx=src.getContext('2d');
+  sctx.fillStyle='#000'; sctx.fillRect(0,0,ww,wh);
+  sctx.imageSmoothingEnabled=false;
+  sctx.drawImage(sprImg,-xoff,-yoff);
+
+  // Draw grid overlay
+  const ov=document.getElementById('sprite-grid-overlay');
+  ov.width=ww; ov.height=wh;
+  const octx=ov.getContext('2d');
+  octx.clearRect(0,0,ww,wh);
+  const gw=cols*8, gh=SPR_ROWS_FIXED*10;
+  octx.strokeStyle='rgba(80,255,120,0.4)'; octx.lineWidth=0.5;
+  for(let c=0;c<=cols;c++){octx.beginPath();octx.moveTo(c*8,0);octx.lineTo(c*8,gh);octx.stroke();}
+  for(let r=0;r<=SPR_ROWS_FIXED;r++){octx.beginPath();octx.moveTo(0,r*10);octx.lineTo(gw,r*10);octx.stroke();}
+  octx.strokeStyle='rgba(80,255,120,0.9)'; octx.lineWidth=1;
+  octx.strokeRect(0,0,gw,gh);
+
+  // Build result + pixel arrays
+  const rcv=document.getElementById('sprite-result-canvas');
+  const scale=4;
+  rcv.width=cols*8*scale; rcv.height=SPR_ROWS_FIXED*10*scale;
+  rcv.style.width=(cols*8*scale)+'px'; rcv.style.height=(SPR_ROWS_FIXED*10*scale)+'px';
+  const rctx=rcv.getContext('2d');
+  rctx.fillStyle='#000'; rctx.fillRect(0,0,rcv.width,rcv.height);
+
+  const cvSrc=document.createElement('canvas');
+  cvSrc.width=sprImg.width; cvSrc.height=sprImg.height;
+  cvSrc.getContext('2d').drawImage(sprImg,0,0);
+  const imgData=cvSrc.getContext('2d').getImageData(0,0,sprImg.width,sprImg.height);
+
+  const pixelArrays=[];
+  let nonBlank=0;
+  for(let col=0;col<cols;col++){
+    for(let row=0;row<SPR_ROWS_FIXED;row++){
+      const pixRows=[];
+      for(let r=0;r<10;r++){
+        const pixRow=[];
+        for(let c=0;c<8;c++){
+          const px=(col*8+c)+xoff, py=(row*10+r)+yoff;
+          let on=0;
+          if(px>=0&&px<sprImg.width&&py>=0&&py<sprImg.height){
+            const idx=(py*sprImg.width+px)*4;
+            const lum=imgData.data[idx]*.299+imgData.data[idx+1]*.587+imgData.data[idx+2]*.114;
+            on=lum<thresh?1:0; if(invert)on=1-on;
+          }
+          pixRow.push(on);
+          if(on){rctx.fillStyle='#e8e8e8';rctx.fillRect((col*8+c)*scale,(row*10+r)*scale,scale,scale);}
+        }
+        pixRows.push(pixRow);
+      }
+      if(!isBlankCell(pixRows)) nonBlank++;
+      pixelArrays.push(pixRows);
+    }
+  }
+  window._sprPixelArrays=pixelArrays;
+  window._sprCols=cols;
+
+  document.getElementById('spr-result-info').textContent=
+    cols+'×'+SPR_ROWS_FIXED+' = '+(cols*SPR_ROWS_FIXED)+' cells | '+nonBlank+' non-blank';
+  sprUpdateCapture();
+}
+
+function sprUpdateCapture(){
+  const animIdx=+document.getElementById('spr-anim-sel').value;
+  const frameNum=+document.getElementById('spr-frame-num').value||0;
+  const cols=+document.getElementById('spr-cols').value||2;
+  const info=document.getElementById('spr-capture-info');
+  if(animIdx<0){info.textContent='select animation first';return;}
+  const anim=animations[animIdx];
+  const reCapture=frameNum<anim.frames.length;
+  info.innerHTML=
+    `<span style="color:#fff">${anim.name}</span> frame #${frameNum}`+
+    (reCapture?' <span style="color:#ffcc44">[overwrite]</span>':' <span style="color:#aaffaa">[new]</span>')+`<br>`+
+    `${cols}×${SPR_ROWS_FIXED} = ${cols*SPR_ROWS_FIXED} raw cells → stored as pixel data`;
+}
+
+function sprCapture(){
+  if(!sprImg||!window._sprPixelArrays){
+    document.getElementById('spr-capture-result').textContent='load image first'; return;
+  }
+  const animIdx=+document.getElementById('spr-anim-sel').value;
+  if(animIdx<0){document.getElementById('spr-capture-result').textContent='select animation'; return;}
+  const cols=window._sprCols;
+  const pixelArrays=window._sprPixelArrays;
+  const frameNum=+document.getElementById('spr-frame-num').value||0;
+  const anim=animations[animIdx];
+
+  // Build cells array — raw pixel data, col-major
+  const cells=[];
+  for(let cx=0;cx<cols;cx++)
+    for(let cy=0;cy<SPR_ROWS_FIXED;cy++)
+      cells.push(pixelArrays[cx*SPR_ROWS_FIXED+cy].map(r=>[...r]));
+
+  const newFrame={cols, rows:SPR_ROWS_FIXED, x_off:0, duration:3, cells, id:nextFrameId++};
+
+  if(frameNum<anim.frames.length){
+    anim.frames[frameNum]=newFrame;
+  } else {
+    while(anim.frames.length<frameNum)
+      anim.frames.push({cols:1,rows:SPR_ROWS_FIXED,x_off:0,duration:3,cells:[blankCell()],id:nextFrameId++});
+    anim.frames.push(newFrame);
+  }
+
+  selFrame=frameNum; selAnim=animIdx;
+  buildAnimList(); buildTimeline(); updateFrameProps(); renderAnimPreview(); scheduleSave();
+  document.getElementById('spr-capture-result').textContent=
+    '✓ frame '+frameNum+': '+cols+'×8 cells captured ('+cells.filter(c=>!isBlankCell(c)).length+' non-blank)';
+  document.getElementById('spr-frame-num').value=frameNum+1;
+  sprUpdateCapture();
+}
+
+function sprDragStart(e){if(!sprImg)return;sprDragging=true;sprDragSX=e.clientX;sprDragSY=e.clientY;sprDragOx=+document.getElementById('spr-xoff').value||0;sprDragOy=+document.getElementById('spr-yoff').value||0;}
+function sprDragMove(e){if(!sprDragging)return;document.getElementById('spr-xoff').value=sprDragOx-(e.clientX-sprDragSX);document.getElementById('spr-yoff').value=sprDragOy-(e.clientY-sprDragSY);spriteMoved();}
+function sprDragEnd(){sprDragging=false;}
+
+// ════════════════════════════════════════════════════════════════════════════
+// IMPORT ANIMATION .H (backward compat — tries to load frame.chars as cells)
+// ════════════════════════════════════════════════════════════════════════════
+// ── Frame reorder / duplicate ────────────────────────────────────────────────
+function moveFrame(dir){
+  if(selAnim<0) return;
+  const fr=animations[selAnim].frames;
+  const i=selFrame, j=i+dir;
+  if(i<0||i>=fr.length||j<0||j>=fr.length) return;
+  [fr[i],fr[j]]=[fr[j],fr[i]];
+  selFrame=j;   // selection follows the moved frame
+  buildAnimList();buildTimeline();updateFrameProps();renderAnimPreview();scheduleSave();
+}
+document.getElementById('btn-frame-movel').onclick=()=>moveFrame(-1);
+document.getElementById('btn-frame-mover').onclick=()=>moveFrame(1);
+document.getElementById('btn-frame-dup').onclick=()=>{
+  if(selAnim<0) return;
+  const fr=animations[selAnim].frames;
+  if(selFrame<0||selFrame>=fr.length) return;
+  const orig=fr[selFrame];
+  fr.splice(selFrame+1,0,{
+    cols:orig.cols, rows:orig.rows,
+    x_off:orig.x_off, duration:orig.duration,
+    cells:orig.cells.map(c=>c?c.map(r=>[...r]):null),  // null = blank cell
+    id:nextFrameId++   // new identity — it will likely be edited to differ
+  });
+  selFrame++;
+  buildAnimList();buildTimeline();updateFrameProps();renderAnimPreview();scheduleSave();
+};
+document.getElementById('btn-frame-copyto').onclick=()=>{
+  if(selAnim<0) return;
+  const fr=animations[selAnim].frames;
+  if(selFrame<0||selFrame>=fr.length) return;
+  const tgt=+document.getElementById('frame-copyto-sel').value;
+  if(isNaN(tgt)||tgt<0||tgt>=animations.length) return;
+  const orig=fr[selFrame];
+  animations[tgt].frames.push({
+    cols:orig.cols, rows:orig.rows,
+    x_off:orig.x_off, duration:orig.duration,
+    cells:orig.cells.map(c=>c?c.map(r=>[...r]):null),  // deep copy, null-safe
+    id:nextFrameId++   // independent frame in the target animation
+  });
+  if(tgt===selAnim) selFrame=fr.length-1;  // copied into this anim → select the copy
+  buildAnimList();buildTimeline();updateFrameProps();renderAnimPreview();scheduleSave();
+};
+document.getElementById('btn-frame-copy').onclick=()=>{
+  if(selAnim<0) return;
+  const anim=animations[selAnim];
+  if(selFrame<0||selFrame>=anim.frames.length) return;
+  const orig=anim.frames[selFrame];
+  // Deep-clone frame (cells are arrays of arrays)
+  const lastXoff=anim.frames.length>0?anim.frames[anim.frames.length-1].x_off:0;
+  anim.frames.push({
+    cols:orig.cols, rows:orig.rows,
+    x_off:lastXoff+1, duration:orig.duration,
+    cells:orig.cells.map(c=>c?c.map(r=>[...r]):null),  // null-safe: blank cells
+    id:orig.id  // keep same ID — it's the same sprite
+  });
+  selFrame=anim.frames.length-1;
+  buildAnimList();buildTimeline();updateFrameProps();renderAnimPreview();scheduleSave();
+  document.getElementById('spr-capture-result');
+};
+
+document.getElementById('btn-import-anim').onclick=()=>document.getElementById('anim-file-in').click();
+document.getElementById('anim-file-in').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    const text=ev.target.result;
+    // Try to parse EXELIMAGE_SETTINGS or exlanim.h format
+    const lines=text.split('\n');
+    // Simple heuristic: find ANIM_ labels
+    const animBlocks=[];
+    let cur=null;
+    lines.forEach(l=>{
+      const m=l.match(/^(\w+):\s*$/);
+      if(m&&m[1].startsWith('ANIM_')&&!m[1].includes('_F')){
+        if(cur) animBlocks.push(cur);
+        cur={name:m[1].replace(/^ANIM_/,''),frames:[]};
+      }
+    });
+    if(cur) animBlocks.push(cur);
+    if(animBlocks.length){
+      animBlocks.forEach(ab=>{if(!animations.find(a=>a.name===ab.name))animations.push({name:ab.name,frames:[],x_advance:-2,loop:true});});
+      buildAnimList(); alert('Imported '+animBlocks.length+' animation stubs. Add frames via Sprite Import.');
+    } else {
+      alert('Could not parse animation file.');
+    }
+  };
+  r.readAsText(f);
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// TAB SWITCHING
+// ════════════════════════════════════════════════════════════════════════════
+let activeTab='editor';
+function switchTab(t){
+  activeTab=t;
+  document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('active',['editor','anim','sprite','level'][i]===t));
+  document.getElementById('panel-editor').classList.toggle('active',t==='editor');
+  document.getElementById('panel-anim').classList.toggle('active',t==='anim');
+  document.getElementById('panel-sprite').classList.toggle('active',t==='sprite');
+  document.getElementById('panel-level').classList.toggle('active',t==='level');
+  document.getElementById('strip-bar').style.display=t==='editor'?'block':'none';
+  if(t==='anim'){buildAnimList();renderAnimPreview();buildTimeline();}
+  if(t==='sprite'){buildAnimList();sprUpdateCapture();}
+  if(t==='level'){buildLevelGrid();}
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// SAVE / LOAD
+// ════════════════════════════════════════════════════════════════════════════
+document.getElementById('btn-load-prev').onclick=()=>{
+  try{
+    const raw=localStorage.getItem(STORAGE_KEY); if(!raw){alert('No saved session.');return;}
+    const d=JSON.parse(raw);
+    if(d.chars?.length===NUM) chars=d.chars.map(c=>({pixels:c.pixels.map(r=>[...r]),fg:c.fg||0,bg:c.bg||0,name:c.name||''}));
+    if(d.animations){
+      animations=d.animations;
+      // Ensure all frames have IDs (for sessions saved before v5 ID feature)
+      let maxId=0;
+      animations.forEach(a=>a.frames.forEach(f=>{if(!f.id)f.id=0;maxId=Math.max(maxId,f.id||0);}));
+      animations.forEach(a=>a.frames.forEach(f=>{if(!f.id){f.id=++maxId;}}));
+      nextFrameId=maxId+1;
+    }
+    groupStart=d.groupStart||0; selInGroup=d.selInGroup||0;
+    if(d.sprRow!==undefined&&d.sprRow!==''){const sr=document.getElementById('spr-row-in');if(sr)sr.value=d.sprRow;}
+    rebuild(); buildAnimList();
+    document.getElementById('autosave-info').textContent='restored '+(d.savedAt?new Date(d.savedAt).toLocaleTimeString():'');
+  }catch(e){alert('Load failed: '+e.message);}
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// SAVE / LOAD JSON
+// ════════════════════════════════════════════════════════════════════════════
+document.getElementById('btn-save-json').onclick=()=>{
+  const data={
+    version:5,
+    savedAt:new Date().toISOString(),
+    animations,
+    nextFrameId,
+    sprRow:(document.getElementById('spr-row-in')||{}).value,
+    chars:chars.map(c=>({pixels:c.pixels,fg:c.fg,bg:c.bg,name:c.name}))
+  };
+  dl(JSON.stringify(data,null,2),'exlchar_session.json');
+};
+
+document.getElementById('btn-load-json').onclick=()=>document.getElementById('json-file-in').click();
+document.getElementById('json-file-in').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const d=JSON.parse(ev.target.result);
+      if(d.chars?.length===NUM)
+        chars=d.chars.map(c=>({pixels:c.pixels.map(r=>[...r]),fg:c.fg||0,bg:c.bg||0,name:c.name||''}));
+      if(d.animations) animations=d.animations;
+      if(d.nextFrameId) nextFrameId=d.nextFrameId;
+      {const sr=document.getElementById('spr-row-in');if(sr)sr.value=(d.sprRow!==undefined&&d.sprRow!=='')?d.sprRow:8;}
+      selAnim=-1; selFrame=-1;
+      rebuild(); buildAnimList(); updateAnimProps(); buildTimeline(); renderAnimPreview();
+      document.getElementById('autosave-info').textContent='loaded: '+(d.savedAt?new Date(d.savedAt).toLocaleTimeString():'');
+    }catch(err){alert('Load failed: '+err.message);}
+  };
+  r.readAsText(f);
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════════════════════
+rebuild();
+document.getElementById('strip-bar').style.display='block';
+try{
+  const raw=localStorage.getItem(STORAGE_KEY);
+  if(raw){const d=JSON.parse(raw);document.getElementById('autosave-info').textContent='prev '+(d.savedAt?new Date(d.savedAt).toLocaleTimeString():'')+'  (click LOAD)';}
+}catch(e){}
+
+// ════════════════════════════════════════════════════════════════════════════
+// LEVEL EDITOR
+// Level = 40 cols × N rows grid, each cell = {tile index or -1 for empty}
+// Tiles: array of {name, charCode, attr, solid}
+// GRID_ROWS = rows used for the playfield (default rows 8..24 = 17 rows)
+// ════════════════════════════════════════════════════════════════════════════
+const LEVEL_COLS=40, LEVEL_ROWS=25, LEVEL_START_ROW=0; // rows 8-24 on screen
+let levelGrid=Array.from({length:LEVEL_ROWS},()=>new Array(LEVEL_COLS).fill(-1));
+let levelTiles=[
+  {name:'EMPTY',  charCode:0x7F, attr:0x10, solid:false},  // blank (always index 0)
+  {name:'FLOOR',  charCode:0x50, attr:0xF0, solid:true },
+  {name:'WALL',   charCode:0x51, attr:0xF0, solid:true },
+  {name:'CEIL',   charCode:0x52, attr:0xF0, solid:true },
+];
+let selTileIdx=0; // currently selected tile for painting
+let levelPainting=false;
+
+let CELL_PX=14; // display size per cell in level editor (zoom)
+
+function buildLevelGrid(){
+  buildStampPalette();
+  const canvas=document.getElementById('level-canvas');
+  canvas.width=LEVEL_COLS*CELL_PX;
+  canvas.height=LEVEL_ROWS*CELL_PX;
+  buildTilePalette();
+  renderLevelCanvas();
+}
+
+function buildTilePalette(){
+  const pal=document.getElementById('tile-palette');
+  pal.innerHTML='';
+  levelTiles.forEach((t,i)=>{
+    const btn=document.createElement('button');
+    btn.className='btn';
+    btn.style.cssText='font-size:8px;padding:2px 5px;min-width:36px;'+(i===selTileIdx?'border-color:#fff;color:#fff':'');
+    btn.textContent=t.name.slice(0,6);
+    btn.title='char=$'+t.charCode.toString(16).toUpperCase().padStart(2,'0')+' attr=$'+t.attr.toString(16).toUpperCase().padStart(2,'0')+(t.solid?' SOLID':'');
+    btn.onclick=()=>{selTileIdx=i;selStampOrTile='tile';buildTilePalette();updateTileProps();if(typeof buildStampPalette==='function')buildStampPalette();};
+    pal.appendChild(btn);
+  });
+  updateTileProps();
+}
+
+function updateTileProps(){
+  const t=levelTiles[selTileIdx];
+  document.getElementById('tile-props-empty').style.display=t?'none':'block';
+  document.getElementById('tile-props').style.display=t?'flex':'none';
+  if(!t) return;
+  document.getElementById('sel-tile-label').textContent='selected: '+t.name;
+  document.getElementById('tile-name-in').value=t.name;
+  document.getElementById('tile-char-in').value=t.charCode.toString(16).toUpperCase().padStart(2,'0');
+  document.getElementById('tile-attr-in').value=t.attr.toString(16).toUpperCase().padStart(2,'0');
+  document.getElementById('tile-solid-chk').checked=!!t.solid;
+  // Preview: draw the char from current charData
+  const preCanvas=document.getElementById('tile-preview');
+  const pctx=preCanvas.getContext('2d');
+  pctx.fillStyle='#000';
+  pctx.fillRect(0,0,24,30);
+  if(t.charCode!==0x7F){
+    const pixels=charToPixels(t.charCode);
+    const fg=attrToColor(t.attr);
+    pixels.forEach((row,y)=>row.forEach((px,x)=>{
+      if(px){pctx.fillStyle=fg;pctx.fillRect(x*3,y*3,3,3);}
+    }));
+  }
+}
+
+function attrToColor(attr){
+  // Extract foreground color from attr byte (bits 4-6)
+  const colors=['#000','#00f','#0f0','#0ff','#f00','#f0f','#ff0','#fff'];
+  return colors[(attr>>4)&7]||'#fff';
+}
+
+// Canonical char bitmap accessor: returns 10 bytes (top row first) for a char code.
+// Reads chars[].pixels (the persisted editor state), with fallback to legacy
+// numeric side-props left by old tile imports (chars[code][row]=byte).
+function getCharBytes(code){
+  const c=chars&&chars[code];
+  if(!c) return new Array(10).fill(0);
+  if(c.pixels&&c.pixels.some(r=>r.some(v=>v))) return c.pixels.map(rowToByte);
+  if(typeof c[0]==='number') return Array.from({length:10},(_,r)=>c[r]||0); // legacy side data
+  if(c.pixels) return c.pixels.map(rowToByte);
+  return new Array(10).fill(0);
+}
+
+function charToPixels(charCode){
+  // Get pixels for a char code (10 rows × 8 cols) from editor state
+  const bytes=getCharBytes(charCode);
+  return bytes.map(byte=>Array.from({length:8},(_,col)=>(byte>>(7-col))&1));
+}
+
+// Byte accessor for tile preview — reads from current char editor state
+function getCharDataByte(charCode, row){
+  return getCharBytes(charCode)[row]||0;
+}
+
+function renderLevelCanvas(){
+  const canvas=document.getElementById('level-canvas');
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#000';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  // Draw grid
+  for(let row=0;row<LEVEL_ROWS;row++){
+    for(let col=0;col<LEVEL_COLS;col++){
+      const ti=levelGrid[row][col];
+      const x=col*CELL_PX, y=row*CELL_PX;
+      if(ti>=0&&ti<levelTiles.length){
+        const t=levelTiles[ti];
+        if(ti===0){
+          ctx.fillStyle='#111';
+          ctx.fillRect(x,y,CELL_PX,CELL_PX);
+        } else {
+          // Draw actual char pixels scaled to cell size
+          ctx.fillStyle='#000';
+          ctx.fillRect(x,y,CELL_PX,CELL_PX);
+          const charIdx=t.charCode;
+          const fg=attrToColor(t.attr);
+          ctx.fillStyle=fg;
+          const pw=CELL_PX/8, ph=CELL_PX/10;
+          const cbytes=getCharBytes(charIdx);
+          for(let cy=0;cy<10;cy++){
+            const byte=cbytes[cy]||0;
+            for(let cx=0;cx<8;cx++){
+              if((byte>>(7-cx))&1){
+                ctx.fillRect(x+cx*pw, y+cy*ph, Math.max(1,pw), Math.max(1,ph));
+              }
+            }
+          }
+        }
+      }
+      ctx.strokeStyle='#222';
+      ctx.strokeRect(x,y,CELL_PX,CELL_PX);
+    }
+  }
+  // Row labels (screen row numbers)
+  ctx.fillStyle='#444';
+  ctx.font='7px monospace';
+  for(let row=0;row<LEVEL_ROWS;row++){
+    ctx.fillText(''+row,LEVEL_COLS*CELL_PX+2,row*CELL_PX+9);
+  }
+}
+
+function levelCellFromEvent(e){
+  const canvas=document.getElementById('level-canvas');
+  const rect=canvas.getBoundingClientRect();
+  const scaleX=canvas.width/rect.width;
+  const scaleY=canvas.height/rect.height;
+  const col=Math.floor((e.clientX-rect.left)*scaleX/CELL_PX);
+  const row=Math.floor((e.clientY-rect.top)*scaleY/CELL_PX);
+  return {col:Math.max(0,Math.min(LEVEL_COLS-1,col)),
+          row:Math.max(0,Math.min(LEVEL_ROWS-1,row))};
+}
+
+function paintCell(e){
+  const {col,row}=levelCellFromEvent(e);
+  const newTile=e.buttons===2?-1:selTileIdx; // right-click = erase
+  if(levelGrid[row][col]===newTile) return;
+  levelGrid[row][col]=newTile;
+  renderLevelCanvas();
+}
+
+// Level canvas events handled in tile import section (stamp-aware)
+
+// Tile property handlers
+document.getElementById('tile-name-in').oninput=e=>{
+  levelTiles[selTileIdx].name=e.target.value;
+  buildTilePalette();
+};
+document.getElementById('tile-char-in').oninput=e=>{
+  const v=parseInt(e.target.value,16);
+  if(!isNaN(v)&&v>=0&&v<128){levelTiles[selTileIdx].charCode=v;updateTileProps();}
+};
+document.getElementById('tile-attr-in').oninput=e=>{
+  const v=parseInt(e.target.value,16);
+  if(!isNaN(v)&&v>=0&&v<256){levelTiles[selTileIdx].attr=v;updateTileProps();}
+};
+document.getElementById('tile-solid-chk').onchange=e=>{
+  levelTiles[selTileIdx].solid=e.target.checked;
+};
+
+document.getElementById('btn-add-tile').onclick=()=>{
+  levelTiles.push({name:'TILE'+levelTiles.length,charCode:0x50+levelTiles.length,attr:0xF0,solid:true});
+  selTileIdx=levelTiles.length-1;
+  buildTilePalette();
+};
+document.getElementById('btn-del-tile').onclick=()=>{
+  if(selTileIdx===0){alert('Cannot delete EMPTY tile');return;}
+  // Replace all uses with -1
+  levelGrid.forEach(row=>row.forEach((v,c,a)=>{if(v===selTileIdx)a[c]=-1;else if(v>selTileIdx)a[c]=v-1;}));
+  levelTiles.splice(selTileIdx,1);
+  selTileIdx=Math.max(0,selTileIdx-1);
+  buildTilePalette();
+  renderLevelCanvas();
+};
+// ── PRUNE: remove all tiles not referenced by the level grid ──────────────
+// Keeps EMPTY (must stay index 0). Remaps grid indices so LEVEL_MAP export
+// stays correct. Stamp-only tiles are safe to remove: stamp painting
+// re-creates tile entries on demand (see stamp-aware paintCell).
+document.getElementById('btn-prune-tiles').onclick=()=>{
+  const used=new Set([0]); // EMPTY always kept at index 0
+  levelGrid.forEach(row=>row.forEach(v=>{if(v>=0&&v<levelTiles.length)used.add(v);}));
+  const removed=levelTiles.filter((t,i)=>!used.has(i)).map(t=>t.name);
+  if(removed.length===0){alert('No unused tiles — nothing to prune.');return;}
+  const preview=removed.length>12?removed.slice(0,12).join(', ')+', … (+'+(removed.length-12)+' more)':removed.join(', ');
+  if(!confirm('Remove '+removed.length+' tile(s) not used in the level grid?\n\n'+preview+'\n\nTiles used only by stamps are re-created automatically when you stamp.')) return;
+  const remap=new Map();
+  const newTiles=[];
+  levelTiles.forEach((t,i)=>{if(used.has(i)){remap.set(i,newTiles.length);newTiles.push(t);}});
+  levelTiles=newTiles;
+  levelGrid=levelGrid.map(row=>row.map(v=>(v>=0&&remap.has(v))?remap.get(v):-1));
+  selTileIdx=0; selStampOrTile='tile';
+  buildTilePalette();
+  renderLevelCanvas();
+  document.getElementById('sel-tile-label').textContent='pruned '+removed.length+' unused tile(s)';
+};
+document.getElementById('btn-level-clear').onclick=()=>{
+  if(!confirm('Clear level?')) return;
+  levelGrid=Array.from({length:LEVEL_ROWS},()=>new Array(LEVEL_COLS).fill(-1));
+  renderLevelCanvas();
+};
+document.getElementById('btn-zoom-in').onclick=()=>{
+  CELL_PX=Math.min(30,CELL_PX+2);
+  document.getElementById('zoom-label').textContent=CELL_PX;
+  buildLevelGrid();
+};
+document.getElementById('btn-zoom-out').onclick=()=>{
+  CELL_PX=Math.max(4,CELL_PX-2);
+  document.getElementById('zoom-label').textContent=CELL_PX;
+  buildLevelGrid();
+};
+
+document.getElementById('btn-level-save').onclick=()=>{
+  const data=JSON.stringify({levelGrid,levelTiles,tileStamps},null,2);
+  dl(data,'level.json');
+};
+document.getElementById('btn-level-load').onclick=()=>document.getElementById('level-file-in').click();
+document.getElementById('level-file-in').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const d=JSON.parse(ev.target.result);
+      if(d.levelGrid) levelGrid=d.levelGrid;
+      if(d.levelTiles) levelTiles=d.levelTiles;
+      if(d.tileStamps){
+        tileStamps=d.tileStamps;
+        // Recover tile char bitmaps from stamp cell pixel data — the chars[]
+        // array doesn't persist tile bitmaps across sessions, but stamps do.
+        tileStamps.forEach(s=>(s.cells||[]).forEach(row=>row.forEach(cell=>{
+          if(cell&&cell.pixels&&cell.charCode>=0&&cell.charCode<128){
+            if(!chars[cell.charCode]) chars[cell.charCode]={pixels:blankCell(),fg:7,bg:0,name:''};
+            chars[cell.charCode].pixels=cell.pixels.map(r=>[...r]);
+          }
+        })));
+        scheduleSave();
+      }
+      selTileIdx=0;selStampIdx=-1;
+      buildLevelGrid();
+    }catch(e){alert('Invalid level JSON');}
+  };
+  r.readAsText(f);
+};
+
+// ── LEVEL ASM EXPORT ────────────────────────────────────────────────────────
+document.getElementById('btn-level-export').onclick=()=>{
+  const lines=[];
+  lines.push('; ============================================================');
+  lines.push('; level.h — generated by EXLCHAR v11 LEVEL EDITOR');
+  lines.push('; '+LEVEL_COLS+' cols × '+LEVEL_ROWS+' rows — full screen');
+  lines.push('; Tile count: '+levelTiles.length+' tiles, '+tileStamps.length+' stamps');
+  lines.push('; ============================================================');
+  lines.push('');
+  lines.push('; Tile definitions (char code, attr, solid)');
+  levelTiles.forEach((t,i)=>{
+    lines.push('TILE_'+t.name.toUpperCase().replace(/[^A-Z0-9]/g,'_')
+      +'    .equ    '+i+'   ; char=$'+t.charCode.toString(16).toUpperCase().padStart(2,'0')
+      +' attr=$'+t.attr.toString(16).toUpperCase().padStart(2,'0')
+      +(t.solid?' SOLID':''));
+  });
+  lines.push('');
+  lines.push('; Tile char/attr lookup table (2 bytes per tile: attr, char)');
+  lines.push('TILE_CHARS:');
+  levelTiles.forEach(t=>{
+    lines.push('        .byte   $'+t.attr.toString(16).toUpperCase().padStart(2,'0')
+      +',$'+t.charCode.toString(16).toUpperCase().padStart(2,'0')
+      +'   ; '+t.name+(t.solid?' SOLID':''));
+  });
+  lines.push('');
+  lines.push('; Solid tile flags (1=solid, 0=passable)');
+  lines.push('TILE_SOLID:');
+  lines.push('        .byte   '+levelTiles.map(t=>t.solid?'1':'0').join(','));
+  lines.push('');
+  lines.push('TILE_COUNT  .equ    '+levelTiles.length);
+  lines.push('');
+  lines.push('; Level grid — one byte per cell (0=EMPTY, 1=FLOOR, etc., $FF=empty/air)');
+  lines.push('LEVEL_MAP:');
+  for(let row=0;row<LEVEL_ROWS;row++){
+    const bytes=levelGrid[row].map(v=>v<0?'$FF':'$'+v.toString(16).toUpperCase().padStart(2,'0'));
+    lines.push('        .byte   '+bytes.join(',')+' ; row '+(LEVEL_START_ROW+row));
+  }
+  lines.push('');
+  lines.push('; Helper macros for level lookup');
+  lines.push('; LEVEL_COLS .equ '+LEVEL_COLS);
+  lines.push('; LEVEL_ROWS .equ '+LEVEL_ROWS);
+  lines.push('; LEVEL_START_ROW .equ '+LEVEL_START_ROW);
+  lines.push('; To get tile at (col, row): LEVEL_MAP + row*LEVEL_COLS + col');
+  lines.push('');
+  // Export tile char bitmaps for BAGC3 loading
+  // Classify by the GENERATOR field only (attr bits 3-4 = CG1,CG0 per TMS3556:
+  // attr = BF GF RF | CG1 CG0 | BB GB RB). The top 3 bits are the FOREGROUND
+  // COLOR, so $B8/$98/... are valid (colored) BAGC3 tiles. Comparing the whole
+  // byte to $F8 silently dropped every non-white tile → invisible on hardware.
+  const GEN=a=>a&0x18;
+  const bagc3Tiles=levelTiles.filter(t=>t.charCode!==0x7F&&GEN(t.attr)===GEN(0xF8));
+  const bagc1Tiles=levelTiles.filter(t=>t.charCode!==0x7F&&GEN(t.attr)===GEN(0xF0));
+  // Always emit BAGC3 section so engine.asm can unconditionally reference it
+  lines.push('; ── BAGC3 tile char data ('+bagc3Tiles.length+' chars) ──────────────');
+  lines.push('BAGC3_TILE_CHARS:');
+  if(bagc3Tiles.length>0){
+    bagc3Tiles.sort((a,b)=>a.charCode-b.charCode);
+    const minCode=bagc3Tiles[0].charCode;
+    const maxCode=bagc3Tiles[bagc3Tiles.length-1].charCode;
+    // trap 19 loads bitmaps into CONSECUTIVE slots starting at minCode.
+    // If tile char codes have gaps, we must emit a (blank) bitmap for every
+    // slot in the range so each real tile lands at its own char-code slot.
+    const byCode=new Map(bagc3Tiles.map(t=>[t.charCode,t]));
+    for(let code=minCode;code<=maxCode;code++){
+      const t=byCode.get(code);
+      if(t){
+        const cbytes=getCharBytes(t.charCode);
+        const bytes=Array.from({length:10},(_,row)=>{
+          const b=cbytes[row]||0;
+          return '$'+b.toString(16).toUpperCase().padStart(2,'0');
+        });
+        lines.push('        .byte   '+bytes.join(',')+' ; char $'+code.toString(16).toUpperCase().padStart(2,'0')+' '+t.name);
+      } else {
+        // gap slot — emit blank so consecutive load stays aligned
+        lines.push('        .byte   $00,$00,$00,$00,$00,$00,$00,$00,$00,$00 ; char $'+code.toString(16).toUpperCase().padStart(2,'0')+' (gap/unused)');
+      }
+    }
+    const slotCount=maxCode-minCode+1;
+    lines.push('BAGC3_TILE_CHAR_COUNT .equ '+slotCount);
+    lines.push('BAGC3_TILE_SLOT_START .equ $'+minCode.toString(16).toUpperCase());
+    const bagc3DstAddr=0x0F00+minCode*10;
+    lines.push('BAGC3_DST_ADDR        .equ $'+bagc3DstAddr.toString(16).toUpperCase().padStart(4,'0')+' ; $0F00 + slot_start*10');
+  } else {
+    // No BAGC3 tiles — emit dummy entries so engine.asm labels resolve
+    lines.push('        .byte   0 ; no BAGC3 tiles');
+    lines.push('BAGC3_TILE_CHAR_COUNT .equ 0');
+    lines.push('BAGC3_TILE_SLOT_START .equ $00');
+    lines.push('BAGC3_DST_ADDR        .equ $0F00');
+  }
+  // ── Export sanity check: grid-used tiles that will render INVISIBLE ──────
+  // This turns "blank level on hardware" into a diagnosable message.
+  const usedIdxSet=new Set();
+  levelGrid.forEach(r=>r.forEach(v=>{if(v>=0&&v<levelTiles.length)usedIdxSet.add(v);}));
+  const problems=[];
+  usedIdxSet.forEach(i=>{
+    const t=levelTiles[i]; if(!t||t.charCode===0x7F) return;
+    const g=GEN(t.attr);
+    const hx='$'+t.charCode.toString(16).toUpperCase().padStart(2,'0');
+    const zero=!getCharBytes(t.charCode).some(b=>b);
+    if(g===GEN(0xF8)){
+      if(zero) problems.push(t.name+' (char '+hx+'): BAGC3 bitmap is EMPTY — pixel data missing; reload your level.json (stamps carry the pixels) or re-import the tile image');
+    } else if(g===GEN(0xF0)){
+      if(zero) problems.push(t.name+' (char '+hx+'): BAGC1 char is EMPTY — BAGC1 slots come from the SPRITE char editor; draw char '+hx+' there, or give the tile a BAGC3 attr ($x8)');
+    } else {
+      problems.push(t.name+': attr $'+t.attr.toString(16).toUpperCase().padStart(2,'0')+' selects a generator this exporter does not load — only BAGC3 tiles (attr bits 3-4 = 11, e.g. $F8/$B8) get their bitmaps exported');
+    }
+  });
+  if(usedIdxSet.size===0)
+    problems.push('LEVEL GRID IS EMPTY — every cell is air ($FF); nothing will be drawn');
+  if(problems.length){
+    lines.splice(5,0,'; *** WARNING — '+problems.length+' issue(s) will make the level render blank/incomplete:',
+      ...problems.map(p=>'; ***   '+p),';');
+    alert('level.h exported WITH WARNINGS ('+problems.length+'):\n\n'+problems.join('\n\n'));
+  }
+  dl(lines.join('\n'),'level.h');
+};
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// TILE IMPORT
+// ════════════════════════════════════════════════════════════════════════════
+let tiImg=null, tiImgW=0, tiImgH=0;
+let tiSel={x:0,y:0,w:0,h:0,active:false};
+let tiDragging=false, tiDragStart={x:0,y:0};
+let tileStamps=[]; // [{name, cols, rows, attr, solid, cells:[[{charCode,pixels}]]}]
+let selStampIdx=-1;
+let selStampOrTile='tile'; // 'tile' or 'stamp'
+
+function switchLevelTab(t){
+  document.getElementById('ltab-paint').classList.toggle('active',t==='paint');
+  document.getElementById('ltab-import').classList.toggle('active',t==='import');
+  document.getElementById('lpanel-paint').style.display=t==='paint'?'flex':'none';
+  document.getElementById('lpanel-import').style.display=t==='import'?'flex':'none';
+}
+
+// ── Tile import image load ────────────────────────────────────────────────
+document.getElementById('btn-ti-load').onclick=()=>document.getElementById('ti-file-in').click();
+document.getElementById('ti-file-in').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const url=URL.createObjectURL(f);
+  const img=new Image();
+  img.onload=()=>{
+    tiImg=img; tiImgW=img.width; tiImgH=img.height;
+    // Default: fit to EXL100 320×250, set cell size to 8×10
+    tiZoom=tiCalcFitScale();
+    document.getElementById('ti-cell-w').value=8;
+    document.getElementById('ti-cell-h').value=10;
+    document.getElementById('ti-off-x').value=0;
+    document.getElementById('ti-off-y').value=0;
+    document.getElementById('ti-zoom-label').textContent=tiZoom.toFixed(2)+'×';
+    tiSel={x:0,y:0,w:tiImgW,h:tiImgH,active:true};
+    tiRenderSrc();
+    tiUpdatePreview();
+  };
+  img.src=url;
+};
+
+function tiGetParams(){
+  return {
+    thresh:parseInt(document.getElementById('ti-thresh').value),
+    cw:parseInt(document.getElementById('ti-cell-w').value)||8,
+    ch:parseInt(document.getElementById('ti-cell-h').value)||10,
+    ox:parseInt(document.getElementById('ti-off-x').value)||0,
+    oy:parseInt(document.getElementById('ti-off-y').value)||0,
+  };
+}
+
+// ── Render source canvas with grid + selection ────────────────────────────
+let tiZoom=1.0; // display zoom for source image
+
+function tiCalcFitScale(){
+  // Scale so image fills 320×250 (EXL100 screen = 40*8 × 25*10)
+  // but also set cell size to match
+  const scaleX=320/tiImgW, scaleY=250/tiImgH;
+  return Math.min(scaleX,scaleY);
+}
+
+function tiRenderSrc(){
+  if(!tiImg) return;
+  const canvas=document.getElementById('ti-src-canvas');
+  const p=tiGetParams();
+  const scale=tiZoom;
+  canvas.width=Math.round(tiImgW*scale);
+  canvas.height=Math.round(tiImgH*scale);
+  const ctx=canvas.getContext('2d');
+  ctx.drawImage(tiImg,0,0,canvas.width,canvas.height);
+  // Draw grid
+  ctx.strokeStyle='rgba(0,255,128,0.25)';
+  ctx.lineWidth=1;
+  const cw=p.cw*scale, ch=p.ch*scale;
+  const ox=p.ox*scale, oy=p.oy*scale;
+  for(let x=ox;x<canvas.width;x+=cw){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke();}
+  for(let y=oy;y<canvas.height;y+=ch){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke();}
+  // Draw selection
+  if(tiSel.active&&tiSel.w>0&&tiSel.h>0){
+    ctx.strokeStyle='#ffff00';
+    ctx.lineWidth=2;
+    ctx.strokeRect(tiSel.x*scale,tiSel.y*scale,tiSel.w*scale,tiSel.h*scale);
+    ctx.fillStyle='rgba(255,255,0,0.08)';
+    ctx.fillRect(tiSel.x*scale,tiSel.y*scale,tiSel.w*scale,tiSel.h*scale);
+  }
+  tiUpdateScale=scale; // = tiZoom
+}
+let tiUpdateScale=1;
+
+// ── Mouse on source canvas: drag to select ────────────────────────────────
+const tiSrcCanvas=document.getElementById('ti-src-canvas');
+tiSrcCanvas.addEventListener('mousedown',e=>{
+  if(!tiImg) return;
+  e.preventDefault();
+  tiDragging=true;
+  const r=tiSrcCanvas.getBoundingClientRect();
+  tiDragStart={x:(e.clientX-r.left)/tiUpdateScale, y:(e.clientY-r.top)/tiUpdateScale};
+  tiSel.active=true;
+});
+tiSrcCanvas.addEventListener('mousemove',e=>{
+  if(!tiDragging||!tiImg) return;
+  const r=tiSrcCanvas.getBoundingClientRect();
+  const mx=(e.clientX-r.left)/tiUpdateScale;
+  const my=(e.clientY-r.top)/tiUpdateScale;
+  tiSel.x=Math.round(Math.min(tiDragStart.x,mx));
+  tiSel.y=Math.round(Math.min(tiDragStart.y,my));
+  tiSel.w=Math.round(Math.abs(mx-tiDragStart.x));
+  tiSel.h=Math.round(Math.abs(my-tiDragStart.y));
+  tiRenderSrc();
+  tiUpdatePreview();
+});
+tiSrcCanvas.addEventListener('mouseup',()=>{tiDragging=false;tiSnapSelToGrid();tiRenderSrc();tiUpdatePreview();});
+tiSrcCanvas.addEventListener('mouseleave',()=>{if(tiDragging){tiDragging=false;tiSnapSelToGrid();}});
+
+function tiSnapSelToGrid(){
+  // Snap selection to char cell boundaries
+  const p=tiGetParams();
+  if(tiSel.w<p.cw||tiSel.h<p.ch) return;
+  const ox=p.ox, oy=p.oy, cw=p.cw, ch=p.ch;
+  // Snap x to nearest cell start
+  tiSel.x=ox+Math.round((tiSel.x-ox)/cw)*cw;
+  tiSel.y=oy+Math.round((tiSel.y-oy)/ch)*ch;
+  // Round width/height to cell multiples
+  tiSel.w=Math.max(cw,Math.round(tiSel.w/cw)*cw);
+  tiSel.h=Math.max(ch,Math.round(tiSel.h/ch)*ch);
+}
+
+// ── Threshold and preview ─────────────────────────────────────────────────
+function tiUpdatePreview(){
+  if(!tiImg||!tiSel.active||tiSel.w<=0||tiSel.h<=0) return;
+  const p=tiGetParams();
+  // Render thresholded selection to preview canvas
+  const offscreen=document.createElement('canvas');
+  offscreen.width=tiSel.w; offscreen.height=tiSel.h;
+  const octx=offscreen.getContext('2d');
+  octx.drawImage(tiImg, tiSel.x, tiSel.y, tiSel.w, tiSel.h, 0, 0, tiSel.w, tiSel.h);
+  const imgData=octx.getImageData(0,0,tiSel.w,tiSel.h);
+  // Threshold to 1-bit
+  for(let i=0;i<imgData.data.length;i+=4){
+    const gray=(imgData.data[i]*0.299+imgData.data[i+1]*0.587+imgData.data[i+2]*0.114);
+    const v=gray>p.thresh?255:0;
+    imgData.data[i]=imgData.data[i+1]=imgData.data[i+2]=v;
+    imgData.data[i+3]=255;
+  }
+  octx.putImageData(imgData,0,0);
+  // Draw to preview canvas (scaled to fit)
+  const prev=document.getElementById('ti-prev-canvas');
+  const pctx=prev.getContext('2d');
+  pctx.imageSmoothingEnabled=false;
+  pctx.fillStyle='#000';
+  pctx.fillRect(0,0,prev.width,prev.height);
+  const sc=Math.min(prev.width/tiSel.w, prev.height/tiSel.h);
+  pctx.drawImage(offscreen, 0, 0, tiSel.w, tiSel.h,
+    0, 0, Math.round(tiSel.w*sc), Math.round(tiSel.h*sc));
+  // Extract chars and show strip
+  tiExtractAndShowChars(offscreen, p);
+}
+
+// ── Extract cells from thresholded image and deduplicate ──────────────────
+let tiExtractedCells=[]; // [{key, pixels:[row×col bits], count}]
+let tiCellLayout=[];     // [row][col] = index into tiExtractedCells
+
+function tiExtractAndShowChars(offscreen, p){
+  const {cw,ch}=p;
+  const cols=Math.floor(tiSel.w/cw);
+  const rows=Math.floor(tiSel.h/ch);
+  if(cols<=0||rows<=0) return;
+  const ctx=offscreen.getContext('2d');
+  const cellMap=new Map(); // key → index
+  tiExtractedCells=[];
+  tiCellLayout=Array.from({length:rows},()=>new Array(cols).fill(0));
+  for(let row=0;row<rows;row++){
+    for(let col=0;col<cols;col++){
+      const imgD=ctx.getImageData(col*cw, row*ch, cw, ch);
+      // Build 8×10 pixel array (sample down to 8×10)
+      const pixels=Array.from({length:10},(_,y)=>
+        Array.from({length:8},(_,x)=>{
+          const sx=Math.floor(x*cw/8);
+          const sy=Math.floor(y*ch/10);
+          const i=(sy*cw+sx)*4;
+          return imgD.data[i]>128?1:0;
+        })
+      );
+      const key=pixels.map(r=>r.join('')).join('|');
+      if(!cellMap.has(key)){
+        cellMap.set(key,tiExtractedCells.length);
+        tiExtractedCells.push({key,pixels,count:0});
+      }
+      const idx=cellMap.get(key);
+      tiExtractedCells[idx].count++;
+      tiCellLayout[row][col]=idx;
+    }
+  }
+  // Update count display
+  document.getElementById('ti-char-count').textContent=tiExtractedCells.length;
+  const slotStart=parseInt(document.getElementById('ti-slot-start').value,16)||0x10;
+  document.getElementById('ti-slots-used').textContent=
+    '0x'+slotStart.toString(16).toUpperCase()+'–0x'+(slotStart+tiExtractedCells.length-1).toString(16).toUpperCase();
+  // Show char strip
+  const strip=document.getElementById('ti-char-strip');
+  strip.innerHTML='';
+  tiExtractedCells.forEach((cell,i)=>{
+    const c=document.createElement('canvas');
+    c.width=16; c.height=20;
+    c.style.cssText='image-rendering:pixelated;border:1px solid #333;cursor:pointer';
+    c.title='Char '+i+' (×'+cell.count+')';
+    const cctx=c.getContext('2d');
+    cctx.fillStyle='#000'; cctx.fillRect(0,0,16,20);
+    cctx.fillStyle='#fff';
+    cell.pixels.forEach((row,y)=>row.forEach((px,x)=>{
+      if(px) cctx.fillRect(x*2,y*2,2,2);
+    }));
+    strip.appendChild(c);
+  });
+}
+
+// ── Live update on param changes ──────────────────────────────────────────
+document.getElementById('btn-ti-zoom-in').onclick=()=>{
+  if(!tiImg) return;
+  tiZoom=Math.min(8, tiZoom*1.5);
+  document.getElementById('ti-zoom-label').textContent=tiZoom.toFixed(2)+'×';
+  tiRenderSrc();
+};
+document.getElementById('btn-ti-zoom-out').onclick=()=>{
+  if(!tiImg) return;
+  tiZoom=Math.max(0.1, tiZoom/1.5);
+  document.getElementById('ti-zoom-label').textContent=tiZoom.toFixed(2)+'×';
+  tiRenderSrc();
+};
+document.getElementById('btn-ti-fit-exl').onclick=()=>{
+  if(!tiImg) return;
+  tiZoom=tiCalcFitScale();
+  // Also set cell size: EXL100 is 40×25 chars of 8×10 pixels
+  // So at this scale, one char = 8×scale pixels wide, 10×scale pixels tall
+  // Keep cell size at 8×10 (native EXL100 char dimensions)
+  document.getElementById('ti-cell-w').value=8;
+  document.getElementById('ti-cell-h').value=10;
+  document.getElementById('ti-off-x').value=0;
+  document.getElementById('ti-off-y').value=0;
+  document.getElementById('ti-zoom-label').textContent=tiZoom.toFixed(2)+'×';
+  tiSel={x:0,y:0,w:tiImgW,h:tiImgH,active:true};
+  tiRenderSrc();
+  tiUpdatePreview();
+};
+
+['ti-thresh','ti-cell-w','ti-cell-h','ti-off-x','ti-off-y'].forEach(id=>{
+  const el=document.getElementById(id);
+  el.addEventListener('input',()=>{
+    if(id==='ti-thresh') document.getElementById('ti-thresh-label').textContent=el.value;
+    tiRenderSrc();
+    tiUpdatePreview();
+  });
+});
+
+// ── Extract block → tile library ──────────────────────────────────────────
+document.getElementById('btn-ti-extract').onclick=()=>{
+  if(!tiImg||tiExtractedCells.length===0){
+    document.getElementById('ti-status').textContent='Load image and select region first';
+    return;
+  }
+  const p=tiGetParams();
+  const cols=Math.floor(tiSel.w/p.cw);
+  const rows=Math.floor(tiSel.h/p.ch);
+  const blockName=document.getElementById('ti-block-name').value.toUpperCase().replace(/[^A-Z0-9_]/g,'_')||'BLOCK';
+  const attr=parseInt(document.getElementById('ti-attr').value,16)||0xF8;
+  const solid=document.getElementById('ti-solid').checked;
+  let slotStart=parseInt(document.getElementById('ti-slot-start').value,16)||0x10;
+  // Assign char slots — deduplicated, reuse existing if pixel data matches
+  const slotMap=new Map(); // cell key → assigned char slot
+  // Check existing tiles for matches
+  levelTiles.forEach(t=>{
+    if(t._pixels) slotMap.set(t._pixels,t.charCode);
+  });
+  const newCharDefs=[]; // {slot, pixels} to add
+  tiExtractedCells.forEach(cell=>{
+    if(!slotMap.has(cell.key)){
+      // Find next free slot
+      while(levelTiles.some(t=>t.charCode===slotStart)||
+            newCharDefs.some(d=>d.slot===slotStart)||
+            slotStart===0x20||slotStart===0x7F) slotStart++;
+      slotMap.set(cell.key,slotStart);
+      newCharDefs.push({slot:slotStart,pixels:cell.pixels,key:cell.key});
+      slotStart++;
+    }
+  });
+  // Build stamp: NxM grid of tile references
+  // Each unique cell becomes a tile entry; the stamp references tile indices
+  const stampCells=tiCellLayout.map(row=>row.map(ci=>{
+    const cell=tiExtractedCells[ci];
+    const charCode=slotMap.get(cell.key);
+    return {charCode,pixels:cell.pixels};
+  }));
+  // Add new tile entries for each unique char
+  newCharDefs.forEach(def=>{
+    // Store into CANONICAL editor state (chars[].pixels) so bitmaps survive
+    // save/load — the old numeric side-props (chars[slot][y]=byte) were
+    // stripped by doSave/JSON export, silently zeroing tiles across sessions.
+    if(!chars[def.slot]) chars[def.slot]={pixels:blankCell(),fg:7,bg:0,name:''};
+    chars[def.slot].pixels=def.pixels.map(r=>[...r]);
+    // Only add ONE tile entry per unique char slot (not per cell occurrence)
+    if(!levelTiles.some(t=>t.charCode===def.slot&&t.attr===attr)){
+      const tname=blockName+'_'+def.slot.toString(16).toUpperCase();
+      levelTiles.push({name:tname, charCode:def.slot, attr:attr, solid:solid, _pixels:def.key});
+    }
+  });
+  // Add stamp
+  const stamp={
+    name:blockName,
+    cols,rows,attr,solid,
+    cells:stampCells, // [row][col]{charCode,pixels}
+    tileGrid:tiCellLayout.map(row=>row.map(ci=>slotMap.get(tiExtractedCells[ci].key)))
+  };
+  tileStamps.push(stamp);
+  // Update slot-start field for next import
+  document.getElementById('ti-slot-start').value=(slotStart).toString(16).toUpperCase();
+  // Refresh UI
+  buildTilePalette();
+  buildStampPalette();
+  document.getElementById('ti-status').textContent=
+    '✓ Added "'+blockName+'" '+cols+'×'+rows+' block, '+newCharDefs.length+' new chars';
+};
+
+// ── Stamp palette in PAINT tab ────────────────────────────────────────────
+function buildStampPalette(){
+  const pal=document.getElementById('stamp-palette');
+  pal.innerHTML='';
+  const list=document.getElementById('stamp-list');
+  list.innerHTML='';
+  tileStamps.forEach((stamp,si)=>{
+    // Mini preview button
+    const c=document.createElement('canvas');
+    const pw=Math.min(4,Math.floor(40/stamp.cols));
+    const ph=Math.min(4,Math.floor(40/stamp.rows));
+    c.width=stamp.cols*pw; c.height=stamp.rows*ph;
+    c.style.cssText='image-rendering:pixelated;border:1px solid '+(si===selStampIdx&&selStampOrTile==='stamp'?'#fff':'#444')+';cursor:pointer';
+    c.title=stamp.name+' ('+stamp.cols+'×'+stamp.rows+')';
+    const sctx=c.getContext('2d');
+    sctx.fillStyle='#000'; sctx.fillRect(0,0,c.width,c.height);
+    stamp.cells.forEach((row,ry)=>row.forEach((cell,cx_)=>{
+      sctx.fillStyle='#fff';
+      cell.pixels.forEach((prow,py)=>prow.forEach((px,px_)=>{
+        if(px) sctx.fillRect(cx_*pw+Math.floor(px_*pw/8), ry*ph+Math.floor(py*ph/10), 1, 1);
+      }));
+    }));
+    c.onclick=()=>{selStampIdx=si;selStampOrTile='stamp';buildStampPalette();buildTilePalette();
+      document.getElementById('sel-tile-label').textContent='stamp: '+stamp.name;};
+    pal.appendChild(c);
+    // Side panel list entry
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;gap:4px;align-items:center;font-size:9px;color:#aaa;padding:2px;background:'+(si===selStampIdx&&selStampOrTile==='stamp'?'#2a2a2a':'transparent');
+    row.innerHTML='<span style="color:#ccc">'+stamp.name+'</span><span style="color:#555">'+stamp.cols+'×'+stamp.rows+'</span>';
+    const delBtn=document.createElement('button');
+    delBtn.className='btn'; delBtn.style.cssText='font-size:8px;padding:1px 4px;border-color:#533;color:#f77;margin-left:auto';
+    delBtn.textContent='×';
+    delBtn.onclick=()=>{tileStamps.splice(si,1);if(selStampIdx===si)selStampIdx=-1;buildStampPalette();};
+    row.appendChild(delBtn);
+    list.appendChild(row);
+  });
+}
+
+// ── Stamp-aware level canvas paint ─────────────────────────────────────────
+// NOTE: this declaration hoists over the earlier paintCell() and is the one
+// actually used everywhere (JS function-declaration hoisting).
+function paintCell(e){
+  // Right-click ALWAYS erases a single cell, regardless of tile/stamp mode
+  if(e.buttons===2){
+    const {col,row}=levelCellFromEvent(e);
+    if(levelGrid[row][col]===-1) return;
+    levelGrid[row][col]=-1;
+    renderLevelCanvas();
+    return;
+  }
+  if(selStampOrTile==='stamp'&&selStampIdx>=0){
+    // Paint stamp at cell position
+    const {col,row}=levelCellFromEvent(e);
+    const stamp=tileStamps[selStampIdx];
+    // For each cell in stamp, find or create tile
+    for(let sr=0;sr<stamp.rows;sr++){
+      for(let sc=0;sc<stamp.cols;sc++){
+        const gc=col+sc, gr=row+sr;
+        if(gc<0||gc>=LEVEL_COLS||gr<0||gr>=LEVEL_ROWS) continue;
+        const charCode=stamp.tileGrid[sr][sc];
+        // Find tile index with this charCode and attr
+        let ti=levelTiles.findIndex(t=>t.charCode===charCode&&t.attr===stamp.attr);
+        if(ti<0){
+          // Create tile entry
+          ti=levelTiles.length;
+          levelTiles.push({name:stamp.name+'_'+charCode.toString(16).toUpperCase(),
+            charCode,attr:stamp.attr,solid:stamp.solid});
+        }
+        levelGrid[gr][gc]=ti;
+      }
+    }
+    renderLevelCanvas();
+  } else {
+    // Original single-tile paint
+    const {col,row}=levelCellFromEvent(e);
+    const newTile=e.buttons===2?-1:selTileIdx;
+    if(levelGrid[row][col]===newTile) return;
+    levelGrid[row][col]=newTile;
+    renderLevelCanvas();
+  }
+}
+
+// Override mousedown/mousemove to use new paintCell
+document.getElementById('level-canvas').removeEventListener('mousedown',null);
+const lc=document.getElementById('level-canvas');
+lc.onmousedown=e=>{e.preventDefault();levelPainting=true;paintCell(e);};
+lc.onmousemove=e=>{if(levelPainting)paintCell(e);};
+lc.onmouseup=()=>levelPainting=false;
+lc.onmouseleave=()=>levelPainting=false;
+lc.oncontextmenu=e=>e.preventDefault();
+
+// ── Update level save/load to include stamps ──────────────────────────────
+
+</script>
+</body>
+</html>

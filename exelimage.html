@@ -1,0 +1,3033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EXELIMAGE — EXL100 Image Converter</title>
+<style>
+  /* System fonts only — works fully offline */
+
+  :root {
+    --bg:       #0a0e0a;
+    --bg2:      #0d120d;
+    --bg3:      #111811;
+    --panel:    #0f160f;
+    --border:   #1a2e1a;
+    --border2:  #243824;
+    --green:    #00ff41;
+    --green2:   #00cc33;
+    --green3:   #008822;
+    --green4:   #004411;
+    --amber:    #ffaa00;
+    --red:      #ff3322;
+    --cyan:     #00ffee;
+    --dim:      #3a5a3a;
+    --text:     #c8e8c8;
+    --text2:    #7a9a7a;
+    --mono:     'Courier New', 'Lucida Console', 'Consolas', monospace;
+    --display:  'Courier New', 'Lucida Console', 'Consolas', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border2);
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+  header h1 {
+    font-family: var(--display);
+    font-size: 18px;
+    font-weight: 900;
+    color: var(--green);
+    letter-spacing: 6px;
+    text-shadow: 0 0 20px var(--green3);
+    text-transform: uppercase;
+  }
+  header .sub {
+    color: var(--dim);
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+  .status-bar {
+    margin-left: auto;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+  .status-item {
+    color: var(--text2);
+    font-size: 11px;
+  }
+  .status-item span { color: var(--green); }
+
+  /* ── Main layout ── */
+  main {
+    display: grid;
+    grid-template-columns: 240px 1fr 280px;
+    flex: 1;
+    overflow: hidden;
+    gap: 1px;
+    background: var(--border);
+  }
+
+  /* ── Panels ── */
+  .panel {
+    background: var(--panel);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .panel-title {
+    font-family: var(--display);
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--green3);
+    text-transform: uppercase;
+    font-weight: bold;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+    flex-shrink: 0;
+    text-transform: uppercase;
+  }
+
+  /* ── Left panel controls ── */
+  .controls { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+
+  .upload-zone {
+    border: 1px dashed var(--green3);
+    border-radius: 2px;
+    padding: 20px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--bg2);
+    position: relative;
+  }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--green); background: var(--green4); }
+  .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .upload-zone .icon { font-size: 24px; margin-bottom: 6px; color: var(--green3); }
+  .upload-zone .label { color: var(--text2); font-size: 11px; }
+  .upload-zone .label strong { color: var(--green2); display: block; }
+
+  .section-label {
+    font-size: 10px;
+    color: var(--green3);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 4px;
+    margin-bottom: 6px;
+  }
+
+  .ctrl-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .ctrl-row label { color: var(--text2); font-size: 11px; }
+  .ctrl-row select, .ctrl-row input[type=range] {
+    width: 100%;
+  }
+
+  select {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    color: var(--green);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 6px;
+    outline: none;
+    cursor: pointer;
+  }
+  select:focus { border-color: var(--green3); }
+
+  input[type=range] {
+    accent-color: var(--green);
+    height: 3px;
+  }
+
+  .range-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .range-row label { color: var(--text2); font-size: 11px; white-space: nowrap; }
+  .range-val { color: var(--green); font-size: 11px; min-width: 30px; text-align: right; }
+
+  .btn {
+    background: var(--green4);
+    border: 1px solid var(--green3);
+    color: var(--green);
+    font-family: var(--display);
+    font-size: 10px;
+    letter-spacing: 3px;
+    padding: 8px 12px;
+    font-weight: 900;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.15s;
+    width: 100%;
+  }
+  .btn:hover { background: var(--green3); color: var(--bg); }
+  .btn:active { transform: scale(0.98); }
+  .btn.primary { border-color: var(--green); background: var(--green3); color: var(--bg); }
+  .btn.primary:hover { background: var(--green2); }
+  .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .remap-row {
+    display: grid;
+    grid-template-columns: 18px 12px 1fr;
+    align-items: center;
+    gap: 4px;
+  }
+  .remap-swatch {
+    width: 18px; height: 14px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 1px;
+    flex-shrink: 0;
+  }
+  .remap-arrow { color: var(--dim); font-size: 10px; text-align:center; }
+  .remap-row select {
+    font-size: 10px;
+    padding: 2px 4px;
+    height: 20px;
+  }
+  .remap-row select option {
+    padding: 2px;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+  }
+  .stat-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    padding: 6px 8px;
+    border-radius: 1px;
+  }
+  .stat-box .val { color: var(--green); font-size: 14px; font-weight: bold; }
+  .stat-box .lbl { color: var(--text2); font-size: 9px; text-transform: uppercase; letter-spacing: 1px; }
+
+  /* ── Centre preview ── */
+  .preview-panel {
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .canvas-container {
+    position: relative;
+    image-rendering: pixelated;
+  }
+
+  #preview-canvas {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    border: 1px solid var(--border2);
+    box-shadow: 0 0 40px rgba(0,255,65,0.05);
+    display: block;
+  }
+
+  #grid-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  #grid-canvas.visible { opacity: 0.3; }
+
+  .canvas-controls {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    align-items: center;
+  }
+  .toggle-btn {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .toggle-btn:hover, .toggle-btn.active { border-color: var(--green3); color: var(--green); }
+
+  .zoom-label {
+    color: var(--text2);
+    font-size: 10px;
+  }
+
+  /* Empty state */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    color: var(--dim);
+  }
+  .empty-state .big-icon { font-size: 48px; opacity: 0.4; }
+  .empty-state p { font-size: 12px; text-align: center; max-width: 200px; }
+
+  /* ── Right panel: ASM output ── */
+  .asm-panel { display: flex; flex-direction: column; }
+
+  .asm-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .asm-tab {
+    padding: 6px 12px;
+    font-size: 10px;
+    color: var(--text2);
+    cursor: pointer;
+    border-right: 1px solid var(--border);
+    transition: all 0.15s;
+    letter-spacing: 1px;
+  }
+  .asm-tab:hover { color: var(--green); background: var(--bg2); }
+  .asm-tab.active { color: var(--green); background: var(--bg2); border-bottom: 1px solid var(--bg2); margin-bottom: -1px; }
+
+  .asm-content {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+  }
+  .asm-pane {
+    display: none;
+    height: 100%;
+    flex-direction: column;
+  }
+  .asm-pane.active { display: flex; }
+
+  textarea {
+    flex: 1;
+    background: var(--bg2);
+    border: none;
+    color: var(--green2);
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 10px;
+    resize: none;
+    outline: none;
+    line-height: 1.6;
+  }
+
+  .copy-btn {
+    background: var(--bg2);
+    border: none;
+    border-top: 1px solid var(--border);
+    color: var(--text2);
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 6px;
+    cursor: pointer;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .copy-btn:hover { color: var(--green); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--green4); border-radius: 2px; }
+  /* Larger scrollbars for editor canvas */
+  #ed-canvas-wrap::-webkit-scrollbar { width: 12px; height: 12px; }
+  #ed-canvas-wrap::-webkit-scrollbar-track { background: var(--bg2); border: 1px solid var(--border); }
+  #ed-canvas-wrap::-webkit-scrollbar-thumb { background: var(--green3); border-radius: 3px; border: 2px solid var(--bg2); }
+  #ed-canvas-wrap::-webkit-scrollbar-thumb:hover { background: var(--green2); }
+  #ed-canvas-wrap::-webkit-scrollbar-corner { background: var(--bg2); }
+
+  /* Main tabs */
+  .main-tabs { display:flex; gap:2px; margin-left:16px; }
+  .main-tab {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    font-family: var(--display);
+    font-size: 10px;
+    letter-spacing: 3px;
+    padding: 5px 14px;
+    font-weight: 900;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .main-tab:hover { color: var(--green); border-color: var(--green3); }
+  .main-tab.active { color: var(--green); border-color: var(--green); background: var(--green4); }
+
+  /* Editor color grids */
+  .ed-color-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:3px; }
+  .ed-color-btn {
+    height:22px; border:2px solid transparent; cursor:pointer;
+    border-radius:1px; transition:all 0.1s; position:relative;
+  }
+  .ed-color-btn:hover { transform:scale(1.1); z-index:1; }
+  .ed-color-btn.active { border-color: var(--green) !important; box-shadow: 0 0 6px var(--green3); }
+  .ed-color-btn.active::after {
+    content: '✓'; position:absolute; inset:0; display:flex;
+    align-items:center; justify-content:center; font-size:10px;
+    color: rgba(255,255,255,0.8); text-shadow: 0 0 3px black;
+  }
+
+  /* Tool buttons */
+  .tool-btn {
+    background: var(--bg2); border: 1px solid var(--border2);
+    color: var(--text2); font-family: var(--mono); font-size: 9px;
+    padding: 5px 4px; cursor: pointer; transition: all 0.15s; letter-spacing:1px;
+  }
+  .tool-btn:hover { border-color:var(--green3); color:var(--green); }
+  .tool-btn.active { border-color:var(--green); color:var(--green); background:var(--green4); }
+
+  /* scanline overlay */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>EXELIMAGE</h1>
+  <span class="sub">EXL100 · TMS3556 · ALPHAMOSAIC · 320×250</span>
+  <div class="main-tabs">
+    <button class="main-tab active" id="tab-gen">◈ GENERATOR</button>
+    <button class="main-tab" id="tab-edit">⊞ PIXEL EDITOR</button>
+  </div>
+  <div class="status-bar">
+    <div class="status-item">BAGC2+BAGC3: <span id="slots-used">0</span>/256 slots</div>
+    <div class="status-item">CELLS: <span>1000</span>/1000</div>
+    <div class="status-item" id="proc-status" style="color:var(--dim)">NO IMAGE</div>
+  </div>
+</header>
+
+<main>
+  <!-- Left panel -->
+  <div class="panel">
+    <div class="panel-title">◈ INPUT &amp; CONTROLS</div>
+    <div class="controls">
+
+      <!-- Upload -->
+      <div class="upload-zone" id="drop-zone">
+        <div class="icon">⬡</div>
+        <div class="label">
+          <strong>DROP IMAGE HERE</strong>
+          or click button below
+        </div>
+      </div>
+      <input type="file" id="file-input" accept="image/*" style="display:none">
+      <button class="btn" id="btn-browse">⊕ BROWSE IMAGE</button>
+      <button class="btn" id="btn-reset-all" style="border-color:var(--dim);color:var(--dim)">↺ RESET ALL SETTINGS</button>
+
+      <!-- Style presets -->
+      <div>
+        <div class="section-label">▸ Style Preset</div>
+        <div class="ctrl-row">
+          <select id="style-preset">
+            <option value="photo">Photorealistic</option>
+            <option value="comics">Comics / Cartoon</option>
+            <option value="popart">Pop Art</option>
+            <option value="bw">Black &amp; White</option>
+            <option value="neon">Neon / Cyberpunk</option>
+            <option value="thermal">Thermal / Infrared</option>
+            <option value="posterize">Posterize</option>
+            <option value="woodblock">Japanese Woodblock</option>
+          </select>
+        </div>
+        <div id="style-desc" style="color:var(--text2);font-size:10px;margin-top:4px;line-height:1.4">
+          Natural colors, all algorithms available
+        </div>
+      </div>
+
+      <!-- Algorithm -->
+      <div>
+        <div class="section-label">▸ Algorithm</div>
+        <div class="ctrl-row">
+          <label>Color selection per cell</label>
+          <select id="algo-color">
+            <option value="kmeans2">K-Means 2-color (best)</option>
+            <option value="dominant">Dominant 2 colors</option>
+            <option value="minmax">Min+Max luminance</option>
+            <option value="bestpair">Best pair (exhaustive)</option>
+          </select>
+        </div>
+        <div class="ctrl-row" style="margin-top:6px">
+          <label>Pixel dithering</label>
+          <select id="algo-dither">
+            <option value="threshold">Threshold (none)</option>
+            <option value="bayer4">Bayer 4×4 ordered</option>
+            <option value="bayer8">Bayer 8×8 ordered</option>
+            <option value="floyd">Floyd-Steinberg</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Parameters -->
+      <div>
+        <div class="section-label">▸ Image</div>
+        <div class="range-row">
+          <label>Brightness</label>
+          <input type="range" id="p-brightness" min="-100" max="100" value="0">
+          <span class="range-val" id="v-brightness">0</span>
+        </div>
+        <div class="range-row" style="margin-top:6px">
+          <label>Contrast</label>
+          <input type="range" id="p-contrast" min="-100" max="100" value="0">
+          <span class="range-val" id="v-contrast">0</span>
+        </div>
+        <div class="range-row" style="margin-top:6px">
+          <label>Saturation</label>
+          <input type="range" id="p-saturation" min="0" max="200" value="100">
+          <span class="range-val" id="v-saturation">100</span>
+        </div>
+        <div class="range-row" style="margin-top:6px">
+          <label>Sharpen</label>
+          <input type="range" id="p-sharpen" min="0" max="300" value="0">
+          <span class="range-val" id="v-sharpen">0</span>
+        </div>
+        <div class="section-label" style="margin-top:10px">▸ Dither</div>
+        <div class="range-row" style="margin-top:6px">
+          <label>Dither strength</label>
+          <input type="range" id="p-dither" min="0" max="100" value="75">
+          <span class="range-val" id="v-dither">75</span>
+        </div>
+
+        <div class="section-label" style="margin-top:10px">▸ Char slots</div>
+        <div class="ctrl-row">
+          <label>Slot optimization</label>
+          <select id="char-opt">
+            <option value="greedy">Greedy (fast)</option>
+            <option value="kmeans">K-means cluster (best)</option>
+            <option value="library">Halftone (B&W)</option>
+          </select>
+        </div>
+        <div id="preset-row" style="display:none;flex-direction:column;gap:4px;margin-top:6px">
+          <label style="color:var(--text2);font-size:11px">Halftone mode</label>
+          <select id="pattern-preset">
+            <option value="None">Direct threshold (max detail)</option>
+            <option value="Bayer">Bayer ordered dither</option>
+            <option value="BayerSoft">Bayer soft</option>
+            <option value="Clustered">Clustered dots</option>
+            <option value="HLines">Horizontal lines</option>
+            <option value="VLines">Vertical lines</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Color remapper -->
+      <div>
+        <div class="section-label">▸ Color Remap</div>
+        <div id="remap-grid" style="display:flex;flex-direction:column;gap:3px"></div>
+        <button class="btn" id="btn-remap-reset" style="margin-top:6px;font-size:9px;padding:4px">↺ RESET ALL</button>
+      </div>
+
+      <!-- Stats -->
+      <div>
+        <div class="section-label">▸ Statistics</div>
+        <div class="stats-grid">
+          <div class="stat-box"><div class="val" id="stat-slots">—</div><div class="lbl">Unique chars</div></div>
+          <div class="stat-box"><div class="val" id="stat-bagc2">—</div><div class="lbl">BAGC2 slots</div></div>
+          <div class="stat-box"><div class="val" id="stat-bagc3">—</div><div class="lbl">BAGC3 slots</div></div>
+          <div class="stat-box"><div class="val" id="stat-time">—</div><div class="lbl">Render ms</div></div>
+        </div>
+      </div>
+
+      <!-- Process button -->
+      <button class="btn primary" id="btn-process" disabled>◈ PROCESS IMAGE</button>
+      <button class="btn" id="btn-reprocess" disabled>↺ REPROCESS</button>
+
+    </div>
+  </div>
+
+  <!-- Centre preview -->
+  <div class="preview-panel" id="preview-panel">
+    <div class="empty-state" id="empty-state">
+      <div class="big-icon">⬡</div>
+      <p>Upload an image to begin<br>EXL100 conversion</p>
+    </div>
+    <div class="canvas-container" id="canvas-container" style="display:none">
+      <canvas id="preview-canvas" width="640" height="500"></canvas>
+      <canvas id="grid-canvas" width="640" height="500"></canvas>
+    </div>
+    <div class="canvas-controls" id="canvas-controls" style="display:none">
+      <span class="zoom-label">2× pixel scale</span>
+      <button class="toggle-btn" id="btn-grid">⊞ CELL GRID</button>
+      <button class="toggle-btn" id="btn-compare">◧ COMPARE</button>
+      <button class="toggle-btn" id="btn-zoom">⊕ 1×</button>
+    </div>
+  </div>
+
+  <!-- Right panel: ASM -->
+  <div class="panel asm-panel">
+    <div class="panel-title">◈ ASM OUTPUT</div>
+    <div class="asm-tabs">
+      <div class="asm-tab active" data-tab="bagc2">BAGC2</div>
+      <div class="asm-tab" data-tab="bagc3">BAGC3</div>
+      <div class="asm-tab" data-tab="screen">SCREEN</div>
+      <div class="asm-tab" data-tab="full">FULL</div>
+    </div>
+    <div class="asm-content">
+      <div class="asm-pane active" id="tab-bagc2">
+        <textarea id="asm-bagc2" readonly placeholder="; BAGC2 char definitions will appear here..."></textarea>
+        <button class="copy-btn" data-target="asm-bagc2">⧉ COPY BAGC2</button>
+      </div>
+      <div class="asm-pane" id="tab-bagc3">
+        <textarea id="asm-bagc3" readonly placeholder="; BAGC3 char definitions will appear here..."></textarea>
+        <button class="copy-btn" data-target="asm-bagc3">⧉ COPY BAGC3</button>
+      </div>
+      <div class="asm-pane" id="tab-screen">
+        <textarea id="asm-screen" readonly placeholder="; Screen cell data will appear here..."></textarea>
+        <button class="copy-btn" data-target="asm-screen">⧉ COPY SCREEN</button>
+      </div>
+      <div class="asm-pane" id="tab-full">
+        <textarea id="asm-full" readonly placeholder="; Complete ASM program will appear here..."></textarea>
+        <button class="copy-btn" data-target="asm-full">⧉ COPY ALL</button>
+        <button class="copy-btn" id="btn-import-settings" style="color:var(--amber)">⬆ IMPORT SETTINGS FROM ASM</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ══ PIXEL EDITOR ══════════════════════════════════════════════════════════ -->
+<div id="editor-section" style="display:none;flex:1;display:none;overflow:hidden;flex-direction:column">
+  <div id="editor-main" style="display:grid;grid-template-columns:200px 1fr 220px;flex:1;overflow:hidden;gap:1px;background:var(--border)">
+
+    <!-- Left: cell inspector + color pickers -->
+    <div class="panel" id="ed-left">
+      <div class="panel-title">◈ CELL EDITOR</div>
+      <div style="padding:10px;display:flex;flex-direction:column;gap:10px">
+
+        <!-- Cell pixel grid (8×10, enlarged) -->
+        <div>
+          <div class="section-label">▸ Selected Cell</div>
+          <div id="ed-cell-info" style="color:var(--text2);font-size:10px;margin-bottom:6px">No cell selected</div>
+          <canvas id="ed-cell-canvas" width="160" height="200"
+            style="border:1px solid var(--border2);cursor:crosshair;image-rendering:pixelated;display:block"></canvas>
+        </div>
+
+        <!-- FG color -->
+        <div>
+          <div class="section-label">▸ Foreground Color</div>
+          <div id="ed-fg-grid" class="ed-color-grid"></div>
+        </div>
+
+        <!-- BG color -->
+        <div>
+          <div class="section-label">▸ Background Color</div>
+          <div id="ed-bg-grid" class="ed-color-grid"></div>
+        </div>
+
+        <!-- Tools -->
+        <div>
+          <div class="section-label">▸ Tools</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+            <button class="tool-btn active" id="ed-tool-pixel" title="Toggle pixels">✏ PIXEL</button>
+            <button class="tool-btn" id="ed-tool-fill" title="Fill all with FG/BG">▣ FILL</button>
+            <button class="tool-btn" id="ed-tool-invert" title="Invert bitmap">⊕ INVERT</button>
+            <button class="tool-btn" id="ed-tool-clear" title="Clear to BG">□ CLEAR</button>
+          </div>
+        </div>
+
+        <!-- Undo/redo -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+          <button class="btn" id="ed-undo" disabled>← UNDO</button>
+          <button class="btn" id="ed-redo" disabled>→ REDO</button>
+        </div>
+
+        <!-- Stats -->
+        <div class="stat-box">
+          <div class="val" id="ed-modified-count">0</div>
+          <div class="lbl">Cells modified</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Centre: full screen grid -->
+    <div class="panel" style="background:var(--bg);position:relative;overflow:hidden" id="ed-centre">
+      <div class="panel-title" style="position:absolute;top:0;left:0;right:0;z-index:10">
+        ◈ SCREEN — 40×25 CELLS
+        <span style="float:right;color:var(--text2);font-size:10px;margin-right:8px">
+          Zoom: <button class="toggle-btn" id="ed-zoom-out">−</button>
+          <span id="ed-zoom-label">2×</span>
+          <button class="toggle-btn" id="ed-zoom-in">+</button>
+          &nbsp;
+          <button class="toggle-btn" id="ed-grid-toggle">⊞ GRID</button>
+        </span>
+      </div>
+      <div id="ed-canvas-wrap" style="position:absolute;top:32px;bottom:0;left:0;right:0;overflow:auto">
+        <canvas id="ed-screen-canvas" style="display:block;cursor:crosshair;image-rendering:pixelated"></canvas>
+      </div>
+      <div id="ed-empty" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--dim);flex-direction:column;gap:8px;top:32px">
+        <div style="font-size:32px;opacity:0.3">⊞</div>
+        <div style="font-size:12px">Generate an image first, then switch to this tab</div>
+      </div>
+    </div>
+
+    <!-- Right: ASM export -->
+    <div class="panel" style="display:flex;flex-direction:column">
+      <div class="panel-title">◈ EDITOR EXPORT</div>
+      <div style="padding:10px;display:flex;flex-direction:column;gap:8px;flex-shrink:0">
+        <button class="btn primary" id="ed-btn-export">◈ GENERATE ASM</button>
+        <button class="btn" id="ed-btn-reset">↺ RESET TO GENERATED</button>
+        <div class="stat-box" style="margin-top:4px">
+          <div class="val" id="ed-slots-used">—</div>
+          <div class="lbl">Unique chars (edited)</div>
+        </div>
+      </div>
+      <div class="asm-tabs" style="flex-shrink:0">
+        <div class="asm-tab" data-edtab="screen">SCREEN</div>
+        <div class="asm-tab" data-edtab="bagc2">BAGC2</div>
+        <div class="asm-tab" data-edtab="bagc3">BAGC3</div>
+        <div class="asm-tab active" data-edtab="full">FULL</div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+        <textarea id="ed-asm-out" readonly style="flex:1;background:var(--bg2);border:none;color:var(--green2);font-family:var(--mono);font-size:10px;padding:10px;resize:none;outline:none;line-height:1.6"
+          placeholder="; Click GENERATE ASM to export edited image..."></textarea>
+        <button class="copy-btn" id="ed-copy-btn">⧉ COPY ASM</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ============================================================================
+// EXL100 Constants
+// ============================================================================
+const EXL_W = 320, EXL_H = 250;        // pixels
+const CELL_W = 8,  CELL_H = 10;        // pixels per cell
+const COLS = 40,   ROWS = 25;          // cells
+const MAX_SLOTS = 256;                  // BAGC2(128) + BAGC3(128)
+
+const CANVAS_SCALE = 2;
+const CANVAS_W = EXL_W * CANVAS_SCALE;
+const CANVAS_H = EXL_H * CANVAS_SCALE;
+
+// EXL100 8-color palette [r, g, b]
+const PALETTE = [
+  [0,   0,   0  ], // 0 black
+  [255, 0,   0  ], // 1 red
+  [0,   255, 0  ], // 2 green
+  [255, 255, 0  ], // 3 yellow
+  [0,   0,   255], // 4 blue
+  [255, 0,   255], // 5 magenta
+  [0,   255, 255], // 6 cyan
+  [255, 255, 255], // 7 white
+];
+const PAL_NAMES = ['black','red','green','yellow','blue','magenta','cyan','white'];
+
+// Attr byte: FG(7-5) | CG(4-3) | BG(2-0)
+// CG: 01($08)=BAGC2, 11($18)=BAGC3
+// CG bit mapping (from TMS3556 doc - bits are INVERTED from normal numbering):
+// CG1=0,CG0=0 ($00) = BAGC0 (VDP reg $0B) - relocate to $0200 (away from ROM $0A00)
+// CG1=1,CG0=0 ($10) = BAGC1 (VDP reg $0C) - at $0500, safe
+// CG1=0,CG0=1 ($08) = BAGC2 (VDP reg $0D) - at $0F00, safe
+// CG1=1,CG0=1 ($18) = BAGC3 (VDP reg $0E) - at $1400, DC5=1, safe
+const CG_BAGC0 = 0x00;  // addr $0200 (relocated!) - alphanumeric
+const CG_BAGC1 = 0x10;  // addr $0500 - alphanumeric
+const CG_BAGC2 = 0x08;  // addr $0F00 - alphamosaic
+const CG_BAGC3 = 0x18;
+
+// ============================================================================
+// State
+// ============================================================================
+let srcImage = null;
+let srcImageData = null;  // 320×250 scaled pixels
+let srcFilename = '';
+let resultCells = null;   // array of 1000 {fgIdx, bgIdx, bitmap, charSlot, cgBits}
+let charTable = null;     // { key → slot } for deduplication
+let bagc0Chars = [];
+let bagc1Chars = [];
+let bagc2Chars = [];      // [{bitmap10bytes}]
+let bagc3Chars = [];
+
+// ============================================================================
+// Color remap UI
+// ============================================================================
+let colorRemap = [0,1,2,3,4,5,6,7]; // identity: each color maps to itself
+
+function initRemapGrid() {
+  const grid = document.getElementById('remap-grid');
+  grid.innerHTML = '';
+  PALETTE.forEach(([r,g,b], i) => {
+    const row = document.createElement('div');
+    row.className = 'remap-row';
+
+    const swatch = document.createElement('div');
+    swatch.className = 'remap-swatch';
+    swatch.style.background = `rgb(${r},${g},${b})`;
+    swatch.title = PAL_NAMES[i];
+
+    const arrow = document.createElement('div');
+    arrow.className = 'remap-arrow';
+    arrow.textContent = '→';
+
+    const sel = document.createElement('select');
+    sel.id = `remap-${i}`;
+    PALETTE.forEach(([tr,tg,tb], j) => {
+      const opt = document.createElement('option');
+      opt.value = j;
+      // Colored square + name using unicode block
+      opt.textContent = `■ ${PAL_NAMES[j]}`;
+      opt.style.background = `rgb(${tr},${tg},${tb})`;
+      opt.style.color = j===0 ? '#888' : (tr+tg+tb<300 ? '#fff' : '#000');
+      if (j === i) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener('change', () => {
+      colorRemap[i] = parseInt(sel.value);
+      updateRemapVisual(i, parseInt(sel.value));
+      if (resultCells) applyColorRemap();
+    });
+
+    row.appendChild(swatch);
+    row.appendChild(arrow);
+    row.appendChild(sel);
+    grid.appendChild(row);
+  });
+}
+
+// Apply colorRemap to already-computed resultCells (post-process, no recompute)
+function applyColorRemap() {
+  if (!resultCells) return;
+  resultCells.forEach(cell => {
+    // Always start from original bitmap to avoid accumulated inversions
+    cell.bitmapRows = [...cell.origBitmapRows];
+    let fg = colorRemap[cell.origFg];
+    let bg = colorRemap[cell.origBg];
+
+    // If fg===bg after remap, bitmap has no contrast — keep bg, pick
+    // the palette color closest to origFg that differs from bg
+    if (fg === bg) {
+      let bestD = Infinity, bestAlt = fg;
+      for (let i = 0; i < 8; i++) {
+        if (i === bg) continue;
+        const d = labDist2(...PAL_LAB[colorRemap[cell.origFg]],...PAL_LAB[i]);
+        if (d < bestD) { bestD = d; bestAlt = i; }
+      }
+      fg = bestAlt;
+    }
+
+    // Normalize: bitmaps have bit=1 for darker color (set during processImage)
+    // After remap, if new fg is lighter than new bg, swap + invert bitmap
+    const fgLum = 0.299*PALETTE[fg][0] + 0.587*PALETTE[fg][1] + 0.114*PALETTE[fg][2];
+    const bgLum = 0.299*PALETTE[bg][0] + 0.587*PALETTE[bg][1] + 0.114*PALETTE[bg][2];
+    if (fgLum > bgLum) {
+      // Swap fg/bg — bitmap bits already encode which pixels are "darker"
+      // swapping colors means darker pixels now show bg color = lighter
+      // So also invert bitmap bits
+      const tmp = fg; fg = bg; bg = tmp;
+      cell.bitmapRows = cell.bitmapRows.map(b => (~b) & 0xFF);
+      // Update origBitmap so future remaps invert correctly
+      // Actually invert origBitmapRows if we track them — simpler: 
+      // re-invert if needed on next remap by comparing fg lum again
+    }
+
+    cell.fg = fg;
+    cell.bg = bg;
+    // Rebuild attr byte: FG(7-5) | CG(4-3) | BG(2-0)
+    cell.attr = (cell.fg << 5) | cell.cgBits | cell.bg;
+  });
+  renderPreview();
+  generateASM();
+}
+
+function updateRemapVisual(fromIdx, toIdx) {
+  const arrow = document.querySelectorAll('.remap-arrow')[fromIdx];
+  if (fromIdx === toIdx) {
+    arrow.textContent = '→';
+    arrow.style.color = 'var(--dim)';
+  } else {
+    arrow.textContent = '⇒';
+    arrow.style.color = 'var(--amber)';
+  }
+}
+
+document.getElementById('btn-remap-reset').addEventListener('click', () => {
+  colorRemap = [0,1,2,3,4,5,6,7];
+  initRemapGrid();
+  if (resultCells) applyColorRemap();
+});
+
+// ============================================================================
+// Image loading
+// ============================================================================
+function loadImage(file) {
+  srcFilename = file.name;
+  const img = new Image();
+  img.onload = () => {
+    srcImage = img;
+    // Scale to 320×250 using offscreen canvas
+    // First draw at original size to get full-res pixels
+    const full = document.createElement('canvas');
+    full.width = img.naturalWidth; full.height = img.naturalHeight;
+    const fctx = full.getContext('2d');
+    fctx.drawImage(img, 0, 0);
+    const fullData = fctx.getImageData(0, 0, img.naturalWidth, img.naturalHeight);
+    // Area-average downscale to 320×250
+    srcImageData = areaAverage(fullData, img.naturalWidth, img.naturalHeight, EXL_W, EXL_H);
+    document.getElementById('btn-process').disabled = false;
+    document.getElementById('proc-status').textContent = 'READY';
+    document.getElementById('proc-status').style.color = 'var(--amber)';
+    // Auto-process
+    processImage();
+  };
+  img.src = URL.createObjectURL(file);
+}
+
+// ============================================================================
+// Color utilities
+// ============================================================================
+// sRGB gamma decode
+function linearize(v) {
+  v /= 255;
+  return v <= 0.04045 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4);
+}
+
+// Convert sRGB [0-255] to CIE Lab
+function rgbToLab(r, g, b) {
+  // sRGB → linear
+  let R = linearize(r), G = linearize(g), B = linearize(b);
+  // Linear RGB → XYZ (D65)
+  let X = R*0.4124564 + G*0.3575761 + B*0.1804375;
+  let Y = R*0.2126729 + G*0.7151522 + B*0.0721750;
+  let Z = R*0.0193339 + G*0.1191920 + B*0.9503041;
+  // XYZ → Lab
+  X /= 0.95047; Y /= 1.00000; Z /= 1.08883;
+  const f = v => v > 0.008856 ? Math.cbrt(v) : 7.787*v + 16/116;
+  const fx=f(X), fy=f(Y), fz=f(Z);
+  return [116*fy-16, 500*(fx-fy), 200*(fy-fz)];
+}
+
+// CIE76 Lab distance (perceptually uniform)
+function labDist2(L1,a1,b1, L2,a2,b2) {
+  const dL=L1-L2, da=a1-a2, db=b1-b2;
+  return dL*dL + da*da + db*db;
+}
+
+// Precompute Lab for all 8 palette colors
+const PAL_LAB = PALETTE.map(([r,g,b]) => rgbToLab(r,g,b));
+
+// Weighted RGB distance (fast, used for pixel-level ops)
+function colorDist2(r1,g1,b1, r2,g2,b2) {
+  const dr = r1-r2, dg = g1-g2, db = b1-b2;
+  return 0.299*dr*dr + 0.587*dg*dg + 0.114*db*db;
+}
+
+// Lab distance between a pixel and a palette entry
+function labDistToPal(r, g, b, palIdx) {
+  const [L,a,bb] = rgbToLab(r,g,b);
+  const [L2,a2,b2] = PAL_LAB[palIdx];
+  return labDist2(L,a,bb, L2,a2,b2);
+}
+
+// Nearest palette color using Lab
+function nearestPalColorLab(r, g, b) {
+  const [L,a,bb] = rgbToLab(r,g,b);
+  let best=0, bestD=Infinity;
+  for (let i=0; i<8; i++) {
+    const d = labDist2(L,a,bb,...PAL_LAB[i]);
+    if (d < bestD) { bestD=d; best=i; }
+  }
+  return best;
+}
+
+function nearestPalColor(r, g, b) {
+  return nearestPalColorLab(r, g, b);
+}
+
+
+// Apply brightness/contrast/saturation to a pixel [r,g,b]
+function adjustPixel(r, g, b, brightness, contrast, saturation) {
+  // Brightness
+  r += brightness; g += brightness; b += brightness;
+  // Contrast
+  const f = (259*(contrast+255))/(255*(259-contrast));
+  r = f*(r-128)+128; g = f*(g-128)+128; b = f*(b-128)+128;
+  // Saturation via luminance
+  const lum = 0.299*r + 0.587*g + 0.114*b;
+  r = lum + saturation*(r-lum)/100;
+  g = lum + saturation*(g-lum)/100;
+  b = lum + saturation*(b-lum)/100;
+  return [
+    Math.max(0, Math.min(255, Math.round(r))),
+    Math.max(0, Math.min(255, Math.round(g))),
+    Math.max(0, Math.min(255, Math.round(b)))
+  ];
+}
+
+// ============================================================================
+// Color selection algorithms (find best 2 palette colors for a cell)
+// ============================================================================
+
+// K-means with k=2 on the 80 pixels of a cell, snapped to palette
+// Try all 28 pairs of palette colors, pick the pair that minimizes
+// total error across all pixels in the cell
+function bestPairColors(pixels) {
+  let bestErr=Infinity, bestI=-1, bestJ=-1;
+  for (let i=0;i<8;i++) for (let j=i+1;j<8;j++) {
+    let err=0;
+    for (const [r,g,b] of pixels) err+=Math.min(labDistToPal(r,g,b,i),labDistToPal(r,g,b,j));
+    if (err<bestErr){bestErr=err;bestI=i;bestJ=j;}
+  }
+  return [bestI, bestJ];
+}
+
+function kMeans2Colors(pixels) {
+  // Seed with min/max luminance pixels
+  let minL=Infinity, maxL=-Infinity, minPx=pixels[0], maxPx=pixels[0];
+  for (const px of pixels) {
+    const L = 0.299*px[0]+0.587*px[1]+0.114*px[2];
+    if (L<minL){minL=L;minPx=px;}
+    if (L>maxL){maxL=L;maxPx=px;}
+  }
+  let c0=[...minPx], c1=[...maxPx];
+  if (colorDist2(...c0,...c1) < 100) {
+    // Very similar — use best pair brute force
+    return bestPairColors(pixels);
+  }
+
+  // k-means in Lab space
+  const labPx = pixels.map(([r,g,b])=>rgbToLab(r,g,b));
+  let lab0=rgbToLab(...c0), lab1=rgbToLab(...c1);
+
+  for (let iter=0; iter<10; iter++) {
+    let s0=[0,0,0],n0=0, s1=[0,0,0],n1=0;
+    for (const [L,a,b] of labPx) {
+      const d0=labDist2(L,a,b,...lab0), d1=labDist2(L,a,b,...lab1);
+      if (d0<=d1){s0[0]+=L;s0[1]+=a;s0[2]+=b;n0++;}
+      else       {s1[0]+=L;s1[1]+=a;s1[2]+=b;n1++;}
+    }
+    if (n0>0) lab0=[s0[0]/n0,s0[1]/n0,s0[2]/n0];
+    if (n1>0) lab1=[s1[0]/n1,s1[1]/n1,s1[2]/n1];
+  }
+
+  // Snap to nearest palette color
+  let best0=0,bd0=Infinity, best1=0,bd1=Infinity;
+  for (let i=0;i<8;i++){
+    const d0=labDist2(...lab0,...PAL_LAB[i]);
+    const d1=labDist2(...lab1,...PAL_LAB[i]);
+    if(d0<bd0){bd0=d0;best0=i;}
+    if(d1<bd1){bd1=d1;best1=i;}
+  }
+  if (best0===best1) return bestPairColors(pixels);
+  return [best0, best1];
+}
+
+// Dominant: count nearest-palette pixels, pick top 2
+function dominantColors(pixels) {
+  const counts = new Array(8).fill(0);
+  for (const [r,g,b] of pixels) counts[nearestPalColorLab(r,g,b)]++;
+  const sorted = counts.map((c,i)=>[c,i]).sort((a,b)=>b[0]-a[0]);
+  let i0=sorted[0][1], i1=sorted[1][1];
+  if (sorted[1][0]===0) return bestPairColors(pixels);
+  return [i0, i1];
+}
+
+// Min+Max luminance
+function minMaxColors(pixels) {
+  let minL=Infinity, maxL=-Infinity, minPx=null, maxPx=null;
+  for (const px of pixels) {
+    const L = 0.299*px[0]+0.587*px[1]+0.114*px[2];
+    if (L<minL){minL=L;minPx=px;}
+    if (L>maxL){maxL=L;maxPx=px;}
+  }
+  const i0 = nearestPalColor(...minPx);
+  let i1 = nearestPalColor(...maxPx);
+  if (i0===i1) i1=(i0===7)?0:7;
+  return [i0,i1];
+}
+
+// ============================================================================
+// Dithering: assign each pixel to fg(1) or bg(0)
+// ============================================================================
+
+// Bayer 4×4 matrix (normalized 0-15)
+const BAYER4 = [
+   0, 8, 2,10,
+  12, 4,14, 6,
+   3,11, 1, 9,
+  15, 7,13, 5
+];
+// Bayer 8×8 matrix (normalized 0-63) for finer dithering
+const BAYER8 = [
+   0,32, 8,40, 2,34,10,42,
+  48,16,56,24,50,18,58,26,
+  12,44, 4,36,14,46, 6,38,
+  60,28,52,20,62,30,54,22,
+   3,35,11,43, 1,33, 9,41,
+  51,19,59,27,49,17,57,25,
+  15,47, 7,39,13,45, 5,37,
+  63,31,55,23,61,29,53,21
+];
+
+function pixelToBit_threshold(r, g, b, fgIdx, bgIdx) {
+  const dFG = labDistToPal(r,g,b,fgIdx);
+  const dBG = labDistToPal(r,g,b,bgIdx);
+  return dFG <= dBG ? 1 : 0;
+}
+
+function pixelToBit_bayer(r, g, b, fgIdx, bgIdx, px, py, strength, matrix, size, norm) {
+  const dFG = labDistToPal(r,g,b,fgIdx);
+  const dBG = labDistToPal(r,g,b,bgIdx);
+  const total = dFG + dBG;
+  if (total < 0.001) return 0;
+  const t = dFG / total;
+  const threshold = matrix[(py%size)*size+(px%size)] / norm;
+  const adjusted = t + (threshold - 0.5) * (strength/100) * 0.8;
+  return adjusted < 0.5 ? 1 : 0;
+}
+
+// Floyd-Steinberg: operates on the full adjusted pixel array
+function ditherFloydSteinberg(pixelArr, fgIdxArr, bgIdxArr, strength) {
+  const bits = new Uint8Array(EXL_W * EXL_H);
+  // Process cell by cell to avoid error bleeding across cell boundaries
+  for (let cy = 0; cy < ROWS; cy++) {
+    for (let cx = 0; cx < COLS; cx++) {
+      const ci = cy*COLS+cx;
+      const fgI = fgIdxArr[ci], bgI = bgIdxArr[ci];
+      // Error buffer for this cell only (8×10)
+      const err = new Float32Array(CELL_W * CELL_H * 3);
+      for (let dy = 0; dy < CELL_H; dy++) {
+        for (let dx = 0; dx < CELL_W; dx++) {
+          const pi = dy*CELL_W+dx;
+          const [r,g,b] = pixelArr[(cy*CELL_H+dy)*EXL_W + cx*CELL_W+dx];
+          const er=r+err[pi*3], eg=g+err[pi*3+1], eb=b+err[pi*3+2];
+          const bit = pixelToBit_threshold(
+            Math.max(0,Math.min(255,er)),
+            Math.max(0,Math.min(255,eg)),
+            Math.max(0,Math.min(255,eb)),
+            fgI, bgI
+          );
+          bits[(cy*CELL_H+dy)*EXL_W + cx*CELL_W+dx] = bit;
+          const chosen = PALETTE[bit ? fgI : bgI];
+          const qer=(er-chosen[0])*strength/100;
+          const qeg=(eg-chosen[1])*strength/100;
+          const qeb=(eb-chosen[2])*strength/100;
+          // Distribute within cell only
+          const spread=[[1,0,7/16],[-1,1,3/16],[0,1,5/16],[1,1,1/16]];
+          for (const [ddx,ddy,w] of spread) {
+            const nx=dx+ddx, ny=dy+ddy;
+            if (nx>=0&&nx<CELL_W&&ny<CELL_H) {
+              const ni=(ny*CELL_W+nx)*3;
+              err[ni]+=qer*w; err[ni+1]+=qeg*w; err[ni+2]+=qeb*w;
+            }
+          }
+        }
+      }
+    }
+  }
+  return bits;
+}
+
+// Area-averaging downscale: each destination pixel gets weighted average
+// of all source pixels that overlap its area
+function areaAverage(srcData, sw, sh, dw, dh) {
+  const out = new ImageData(dw, dh);
+  const sd = srcData.data;
+  const dd = out.data;
+  const xScale = sw / dw, yScale = sh / dh;
+
+  for (let dy = 0; dy < dh; dy++) {
+    for (let dx = 0; dx < dw; dx++) {
+      const x0 = dx * xScale, x1 = (dx+1) * xScale;
+      const y0 = dy * yScale, y1 = (dy+1) * yScale;
+      let r=0, g=0, b=0, weight=0;
+
+      const iy0=Math.floor(y0), iy1=Math.ceil(y1);
+      const ix0=Math.floor(x0), ix1=Math.ceil(x1);
+
+      for (let sy=iy0; sy<iy1; sy++) {
+        const wy = Math.min(sy+1,y1) - Math.max(sy,y0);
+        for (let sx=ix0; sx<ix1; sx++) {
+          const wx = Math.min(sx+1,x1) - Math.max(sx,x0);
+          const w = wx * wy;
+          const i = (sy*sw+sx)*4;
+          r += sd[i]*w; g += sd[i+1]*w; b += sd[i+2]*w;
+          weight += w;
+        }
+      }
+      const i = (dy*dw+dx)*4;
+      dd[i]   = Math.round(r/weight);
+      dd[i+1] = Math.round(g/weight);
+      dd[i+2] = Math.round(b/weight);
+      dd[i+3] = 255;
+    }
+  }
+  return out;
+}
+
+// Unsharp mask: result = original + amount*(original - blurred)
+function unsharpMask(pixels, width, height, radius, amount) {
+  // Simple box blur
+  const blurred = pixels.map(p => [...p]);
+  const r = Math.round(radius);
+  for (let y=0; y<height; y++) {
+    for (let x=0; x<width; x++) {
+      let sr=0,sg=0,sb=0,cnt=0;
+      for (let dy=-r; dy<=r; dy++) {
+        for (let dx=-r; dx<=r; dx++) {
+          const nx=x+dx, ny=y+dy;
+          if (nx>=0&&nx<width&&ny>=0&&ny<height) {
+            const [pr,pg,pb]=pixels[ny*width+nx];
+            sr+=pr;sg+=pg;sb+=pb;cnt++;
+          }
+        }
+      }
+      const [or,og,ob]=pixels[y*width+x];
+      blurred[y*width+x] = [
+        Math.max(0,Math.min(255, Math.round(or + amount*(or - sr/cnt)))),
+        Math.max(0,Math.min(255, Math.round(og + amount*(og - sg/cnt)))),
+        Math.max(0,Math.min(255, Math.round(ob + amount*(ob - sb/cnt))))
+      ];
+    }
+  }
+  return blurred;
+}
+
+// Sobel edge detection: returns edge strength per pixel [0-1]
+function detectEdges(pixels, width, height) {
+  const edges = new Float32Array(width * height);
+  for (let y=1; y<height-1; y++) {
+    for (let x=1; x<width-1; x++) {
+      // Luminance of neighbors
+      const lum = (px) => 0.299*px[0]+0.587*px[1]+0.114*px[2];
+      const tl=lum(pixels[(y-1)*width+(x-1)]);
+      const tc=lum(pixels[(y-1)*width+x]);
+      const tr=lum(pixels[(y-1)*width+(x+1)]);
+      const ml=lum(pixels[y*width+(x-1)]);
+      const mr=lum(pixels[y*width+(x+1)]);
+      const bl=lum(pixels[(y+1)*width+(x-1)]);
+      const bc=lum(pixels[(y+1)*width+x]);
+      const brr=lum(pixels[(y+1)*width+(x+1)]);
+      const gx = -tl-2*ml-bl+tr+2*mr+brr;
+      const gy = -tl-2*tc-tr+bl+2*bc+brr;
+      edges[y*width+x] = Math.min(1, Math.sqrt(gx*gx+gy*gy)/255);
+    }
+  }
+  return edges;
+}
+
+// Average edge strength for a cell
+function cellEdgeStrength(edges, cx, cy) {
+  let sum=0;
+  for (let dy=0; dy<CELL_H; dy++)
+    for (let dx=0; dx<CELL_W; dx++)
+      sum += edges[(cy*CELL_H+dy)*EXL_W + cx*CELL_W+dx];
+  return sum / (CELL_W*CELL_H);
+}
+
+// Select maxSlots representative bitmaps evenly spaced from unique set
+function selectByFrequency(allBitmaps, maxSlots) {
+  // Deduplicate preserving order of first occurrence
+  const seen = new Set();
+  const unique = [];
+  allBitmaps.forEach(bm => {
+    const k = bm.join(',');
+    if (!seen.has(k)) { seen.add(k); unique.push(bm); }
+  });
+  if (unique.length <= maxSlots) return unique;
+  // Take evenly spaced samples across the unique set
+  const result = [];
+  const step = unique.length / maxSlots;
+  for (let i = 0; i < maxSlots; i++) {
+    result.push(unique[Math.floor(i * step)]);
+  }
+  return result;
+}
+
+// K-means clustering on 80-bit bitmap vectors to find best 256 representative chars
+// Returns: array of 256 centroid bitmaps (as 10-byte arrays)
+function optimizeCharSlots(candidateBitmaps, maxSlots) {
+  if (candidateBitmaps.length <= maxSlots) return candidateBitmaps;
+
+  // Initialize centroids: pick evenly spaced from candidates
+  const step = Math.floor(candidateBitmaps.length / maxSlots);
+  let centroids = Array.from({length:maxSlots}, (_,i) =>
+    [...candidateBitmaps[i*step]]
+  );
+
+  let assignments = new Int32Array(candidateBitmaps.length);
+
+  // K-means iterations on binary vectors (Hamming distance)
+  for (let iter=0; iter<4; iter++) {
+    const sums = Array.from({length:maxSlots}, () => new Float32Array(10));
+    const counts = new Int32Array(maxSlots);
+
+    for (let bi=0; bi<candidateBitmaps.length; bi++) {
+      const bm=candidateBitmaps[bi];
+      let best=0, bestD=Infinity;
+      for (let c=0; c<maxSlots; c++) {
+        let d=0;
+        for (let b=0;b<10;b++){let x=bm[b]^centroids[c][b];while(x){d+=x&1;x>>=1;}}
+        if (d<bestD){bestD=d;best=c;}
+      }
+      assignments[bi]=best;
+      for (let b=0;b<10;b++) sums[best][b]+=bm[b];
+      counts[best]++;
+    }
+
+    // Update centroids as floating-point averages (NOT thresholded)
+    // This keeps the centroid close to real bitmaps for distance computation
+    for (let c=0;c<maxSlots;c++) {
+      if (counts[c]>0)
+        centroids[c]=Array.from({length:10},(_,b)=>sums[c][b]/counts[c]);
+    }
+  }
+
+  // For each cluster, pick the ACTUAL bitmap closest to the centroid
+  // This is what gets stored in BAGC — real pixel data, not thresholded
+  const representatives = new Array(maxSlots).fill(null);
+  for (let bi=0; bi<candidateBitmaps.length; bi++) {
+    const c=assignments[bi];
+    const bm=candidateBitmaps[bi];
+    if (!representatives[c]) { representatives[c]=bm; continue; }
+    // Compare distance to centroid
+    let d1=0,d2=0;
+    for(let b=0;b<10;b++){
+      d1+=Math.abs(bm[b]-centroids[c][b]);
+      d2+=Math.abs(representatives[c][b]-centroids[c][b]);
+    }
+    if(d1<d2) representatives[c]=bm;
+  }
+
+  // Fill any empty clusters with nearest available bitmap
+  for (let c=0;c<maxSlots;c++) {
+    if (!representatives[c]) {
+      representatives[c]=candidateBitmaps[0]||Array(10).fill(0);
+    }
+  }
+  return representatives;
+}
+
+// ============================================================================
+// Style transforms — applied to [r,g,b] pixel arrays
+// ============================================================================
+
+const STYLE_DESCS = {
+  photo:     'Natural colors, all algorithms available',
+  comics:    'High contrast, posterized, bold outlines — black+2 color palette',
+  popart:    'Flat saturated colors, Warhol-style posterization',
+  bw:        'Black & white only — use Bayer or FS dithering for best results',
+  neon:      'Dark background, glowing cyan/magenta/yellow highlights',
+  thermal:   'Heat map: cool=blue, warm=red/yellow/white',
+  posterize: 'Reduce to 4 tonal levels per channel',
+  woodblock: 'Bold outlines, flat earth tones, Japanese ink style',
+};
+
+function applyStyle(pixels, style, edgeMap) {
+  if (style === 'photo') return pixels;
+
+  return pixels.map(([r,g,b], i) => {
+    switch(style) {
+
+      case 'comics': {
+        // 1. Boost contrast
+        const f = 2.0;
+        let R=Math.max(0,Math.min(255,(r-128)*f+128));
+        let G=Math.max(0,Math.min(255,(g-128)*f+128));
+        let B=Math.max(0,Math.min(255,(b-128)*f+128));
+        // 2. Posterize to 3 levels
+        R = Math.round(R/127)*127;
+        G = Math.round(G/127)*127;
+        B = Math.round(B/127)*127;
+        // 3. At edges, force to black
+        if (edgeMap && edgeMap[i] > 0.35) return [0,0,0];
+        return [R,G,B];
+      }
+
+      case 'popart': {
+        // Saturate aggressively then posterize to 2 levels per channel
+        const lum = 0.299*r+0.587*g+0.114*b;
+        const sat = 2.5;
+        let R=Math.max(0,Math.min(255,lum+sat*(r-lum)));
+        let G=Math.max(0,Math.min(255,lum+sat*(g-lum)));
+        let B=Math.max(0,Math.min(255,lum+sat*(b-lum)));
+        // Posterize to 2 levels (0 or 255)
+        R = R>128?255:0; G = G>128?255:0; B = B>128?255:0;
+        return [R,G,B];
+      }
+
+      case 'bw': {
+        // Pure luminance → grayscale
+        const L = Math.round(0.299*r+0.587*g+0.114*b);
+        return [L,L,L];
+      }
+
+      case 'neon': {
+        // Darken midtones, boost highlights in neon colors
+        const lum = 0.299*r+0.587*g+0.114*b;
+        if (lum < 80) return [0,0,0]; // dark → black
+        // Map to most saturated channel
+        const max = Math.max(r,g,b);
+        const scale = 255/Math.max(max,1);
+        return [
+          Math.round(Math.min(255,r*scale*1.2)),
+          Math.round(Math.min(255,g*scale*1.2)),
+          Math.round(Math.min(255,b*scale*1.2))
+        ];
+      }
+
+      case 'thermal': {
+        // Map luminance to heat palette: black→blue→red→yellow→white
+        const t = (0.299*r+0.587*g+0.114*b)/255;
+        if (t < 0.25) return [0, 0, Math.round(t*4*255)];
+        if (t < 0.5)  return [Math.round((t-0.25)*4*255), 0, 255-Math.round((t-0.25)*4*255)];
+        if (t < 0.75) return [255, Math.round((t-0.5)*4*255), 0];
+        return [255, 255, Math.round((t-0.75)*4*255)];
+      }
+
+      case 'posterize': {
+        // 4 tonal levels per channel
+        const levels = 4;
+        const R = Math.round(Math.round(r/(255/(levels-1)))*(255/(levels-1)));
+        const G = Math.round(Math.round(g/(255/(levels-1)))*(255/(levels-1)));
+        const B = Math.round(Math.round(b/(255/(levels-1)))*(255/(levels-1)));
+        return [R,G,B];
+      }
+
+      case 'woodblock': {
+        // Desaturate toward earth tones, boost edges to black
+        if (edgeMap && edgeMap[i] > 0.25) return [0,0,0];
+        // Shift toward warm earth tones: reduce blue, boost red slightly
+        const R = Math.min(255, Math.round(r*1.1));
+        const G = Math.round(g*0.95);
+        const B = Math.round(b*0.7);
+        // Reduce to 3 tonal levels
+        const lum = 0.299*R+0.587*G+0.114*B;
+        const level = lum < 85 ? 0 : lum < 170 ? 0.5 : 1;
+        return [
+          Math.round(R*level + (1-level)*20),
+          Math.round(G*level + (1-level)*15),
+          Math.round(B*level + (1-level)*10)
+        ];
+      }
+
+      default: return [r,g,b];
+    }
+  });
+}
+
+// Force B&W palette for bw mode
+function getBWPalette() {
+  return [0, 7]; // black + white only
+}
+
+
+// Collect current settings as an object (for metadata + export)
+function collectSettings() {
+  return {
+    filename: srcFilename,
+    style:      document.getElementById('style-preset').value,
+    colorAlgo:  document.getElementById('algo-color').value,
+    ditherAlgo: document.getElementById('algo-dither').value,
+    brightness: document.getElementById('p-brightness').value,
+    contrast:   document.getElementById('p-contrast').value,
+    saturation: document.getElementById('p-saturation').value,
+    sharpen:    document.getElementById('p-sharpen').value,
+    dither:     document.getElementById('p-dither').value,
+    charOpt:    document.getElementById('char-opt').value,
+    colorRemap: [...colorRemap],
+  };
+}
+
+// Apply settings object to UI controls
+function applySettings(s) {
+  const set = (id, val) => { const el=document.getElementById(id); if(el&&val!==undefined) el.value=val; };
+  const upd = (id) => {
+    const el=document.getElementById(id);
+    const vl=document.getElementById('v-'+id.replace('p-',''));
+    if(el&&vl) vl.textContent=el.value;
+  };
+  set('style-preset', s.style);
+  set('algo-color',   s.colorAlgo);
+  set('algo-dither',  s.ditherAlgo);
+  set('p-brightness', s.brightness); upd('p-brightness');
+  set('p-contrast',   s.contrast);   upd('p-contrast');
+  set('p-saturation', s.saturation); upd('p-saturation');
+  set('p-sharpen',    s.sharpen);    upd('p-sharpen');
+  set('p-dither',     s.dither);     upd('p-dither');
+  set('char-opt',     s.charOpt);
+  if (s.colorRemap && s.colorRemap.length===8) {
+    colorRemap = [...s.colorRemap];
+    initRemapGrid();
+  }
+  // Update style description
+  const desc = document.getElementById('style-desc');
+  if (desc) desc.textContent = STYLE_DESCS[s.style] || '';
+}
+
+// Default settings
+const DEFAULT_SETTINGS = {
+  style:'photo', colorAlgo:'kmeans2', ditherAlgo:'threshold',
+  brightness:'0', contrast:'0', saturation:'100', sharpen:'0',
+  dither:'75', charOpt:'greedy',
+  colorRemap:[0,1,2,3,4,5,6,7]
+};
+
+
+// ── Halftone mode ─────────────────────────────────────────────────────────────
+const HALFTONE_PRESETS = {
+  None:      (dx,dy) => 128,
+  Bayer:     (dx,dy) => (BAYER8[(dy%8)*8+(dx%8)] / 63) * 255,
+  BayerSoft: (dx,dy) => Math.min(255, (BAYER8[(dy%8)*8+(dx%8)] / 63) * 255 * 0.9 + 12),
+  Clustered: (dx,dy) => { const d=Math.sqrt((dx%4-1.5)**2+(dy%5-2)**2); return (d/3.5)*255; },
+  HLines:    (dx,dy) => (dy/9)*255,
+  VLines:    (dx,dy) => (dx/7)*255,
+};
+
+function computeHalftone(styledPixels, presetName) {
+  bagc0Chars=[]; bagc1Chars=[]; bagc2Chars=[]; bagc3Chars=[];
+  const thr = HALFTONE_PRESETS[presetName] || HALFTONE_PRESETS.None;
+  const charMap = new Map();
+
+  // Build all ideal bitmaps
+  const allIdeal = [];
+  for (let cy=0;cy<ROWS;cy++) for (let cx=0;cx<COLS;cx++) {
+    const rows=[];
+    for (let dy=0;dy<CELL_H;dy++) {
+      let b=0;
+      for (let dx=0;dx<CELL_W;dx++) {
+        const [r,g,bl]=styledPixels[(cy*CELL_H+dy)*EXL_W+cx*CELL_W+dx];
+        if (0.299*r+0.587*g+0.114*bl < thr(dx,dy)) b|=(0x80>>dx);
+      }
+      rows.push(b);
+    }
+    allIdeal.push(rows);
+  }
+
+  // Count unique bitmaps
+  const uniqueMap = new Map();
+  allIdeal.forEach((rows,ci) => { const k=rows.join(','); if(!uniqueMap.has(k)) uniqueMap.set(k,ci); });
+  const numUniq = uniqueMap.size;
+  const MAX_SLOTS = 508; // BAGC0(127)+BAGC1(127)+BAGC2(127)+BAGC3(127)
+
+  function addSlot(rows) {
+    function tryGen(chars, bagc) {
+      if(chars.length>=128) return null;
+      if(chars.length===0x20) chars.push(new Array(10).fill(0));
+      if(chars.length>=128) return null;
+      const slot=chars.length; chars.push([...rows]);
+      return {bagc, slot, push:()=>{}};
+    }
+    return tryGen(bagc2Chars,2) || tryGen(bagc3Chars,3) || tryGen(bagc1Chars,1) || tryGen(bagc0Chars,0);
+  }
+
+  if (numUniq <= MAX_SLOTS) {
+    uniqueMap.forEach((ci,key) => {
+      const rows=allIdeal[ci];
+      const s=addSlot(rows); if(s){s.push();charMap.set(key,{bagc:s.bagc,slot:s.slot});}
+    });
+  } else {
+    const allUnique=[...uniqueMap.entries()];
+    const step=allUnique.length/MAX_SLOTS;
+    for(let i=0;i<MAX_SLOTS;i++){
+      const [key,ci]=allUnique[Math.floor(i*step)];
+      if(!charMap.has(key)){
+        const rows=allIdeal[ci];
+        const s=addSlot(rows); if(s){s.push();charMap.set(key,{bagc:s.bagc,slot:s.slot});}
+      }
+    }
+  }
+
+  // Assign cells
+  function nearest(rows) {
+    let be={bagc:2,slot:0},bd=Infinity;
+    const chk=(chars,bagc)=>chars.forEach((r2,s)=>{if(s===0x20)return;let d=0;for(let i=0;i<10;i++){let x=rows[i]^r2[i];while(x){d+=x&1;x>>=1;}}if(d<bd){bd=d;be={bagc,slot:s};}});
+    chk(bagc2Chars,2);chk(bagc3Chars,3);chk(bagc1Chars,1);chk(bagc0Chars,0);
+    return be;
+  }
+  function getRep(e){return e.bagc===2?bagc2Chars[e.slot]:e.bagc===3?bagc3Chars[e.slot]:e.bagc===1?bagc1Chars[e.slot]:bagc0Chars[e.slot];}
+
+  const result=[];
+  for(let ci=0;ci<1000;ci++){
+    const rows=allIdeal[ci];
+    const key=rows.join(',');
+    let entry=charMap.get(key);
+    if(!entry){
+      const s=addSlot(rows);
+      if(s){s.push();entry={bagc:s.bagc,slot:s.slot};}
+      else entry=nearest(rows);
+      charMap.set(key,entry);
+    }
+    result.push({bagc:entry.bagc,slot:entry.slot,rep:getRep(entry)||rows});
+  }
+  console.log(`Halftone: preset=${presetName} unique=${numUniq} bagc2=${bagc2Chars.length} bagc3=${bagc3Chars.length} bagc1=${bagc1Chars.length} bagc0=${bagc0Chars.length} total=${bagc2Chars.length+bagc3Chars.length+bagc1Chars.length+bagc0Chars.length}`);
+  return result;
+}
+
+// Safe slot assignment: skip char code $20 (MIXT zone delimiter)
+function safeAssignSlot(chars, bagc, bitmapRows) {
+  if (chars.length === 0x20) chars.push(new Array(10).fill(0)); // reserve $20 as blank
+  if (chars.length >= 128) return null; // full (127 real + 1 dummy = 128 max)
+  const slot = chars.length;
+  chars.push([...bitmapRows]);
+  return { bagc, slot };
+}
+
+// ============================================================================
+// Main processing
+// ============================================================================
+function processImage() {
+  if (!srcImageData) return;
+  const t0 = performance.now();
+
+  const brightness = parseInt(document.getElementById('p-brightness').value);
+  const contrast   = parseInt(document.getElementById('p-contrast').value);
+  const saturation = parseInt(document.getElementById('p-saturation').value);
+  const ditherStr  = parseInt(document.getElementById('p-dither').value);
+  const sharpenAmt = parseInt(document.getElementById('p-sharpen').value);
+  const charOpt    = document.getElementById('char-opt').value;
+  const colorAlgo  = document.getElementById('algo-color').value;
+  const ditherAlgo = document.getElementById('algo-dither').value;
+  const stylePreset = document.getElementById('style-preset').value;
+
+  // Build adjusted pixel array
+  const raw = srcImageData.data;
+  const pixels = []; // [r,g,b] per pixel, 320×250
+  for (let i = 0; i < EXL_W*EXL_H; i++) {
+    const r=raw[i*4], g=raw[i*4+1], b=raw[i*4+2];
+    pixels.push(adjustPixel(r,g,b,brightness,contrast,saturation));
+  }
+
+  // Apply sharpening if requested
+  let sharpPixels = pixels;
+  if (sharpenAmt > 0) {
+    sharpPixels = unsharpMask(pixels, EXL_W, EXL_H, 1, sharpenAmt/100);
+  }
+
+  // Compute edge map (needed for some styles and edge mode)
+  let edgeMap = null;
+  if (stylePreset === 'comics' || stylePreset === 'woodblock') {
+    edgeMap = detectEdges(sharpPixels, EXL_W, EXL_H);
+  }
+
+  // Apply style transform
+  const styledPixels = applyStyle(sharpPixels, stylePreset, edgeMap);
+
+  // Per-cell color selection
+  const fgIdxArr = new Uint8Array(ROWS*COLS);
+  const bgIdxArr = new Uint8Array(ROWS*COLS);
+
+  for (let cy = 0; cy < ROWS; cy++) {
+    for (let cx = 0; cx < COLS; cx++) {
+      const ci = cy*COLS+cx;
+      if (charOpt === 'library') { fgIdxArr[ci]=0; bgIdxArr[ci]=7; continue; }
+      // Gather cell pixels
+      const cellPx = [];
+      for (let dy = 0; dy < CELL_H; dy++)
+        for (let dx = 0; dx < CELL_W; dx++)
+          cellPx.push(styledPixels[(cy*CELL_H+dy)*EXL_W + cx*CELL_W+dx]);
+
+      let fg, bg;
+      let result;
+      if (stylePreset === 'bw') {
+        result = [0, 7]; // force black + white
+      } else if (colorAlgo === 'kmeans2')  result = kMeans2Colors(cellPx);
+      else if (colorAlgo === 'dominant') result = dominantColors(cellPx);
+      else if (colorAlgo === 'bestpair') result = bestPairColors(cellPx);
+      else                           result = minMaxColors(cellPx);
+      fg = result[0]; bg = result[1];
+
+      // Edge-aware: at strong edges prefer high-contrast color pairs
+
+
+      // Normalize: ensure FG <= BG in luminance (FG=dark, BG=light)
+      // This ensures the bitmap consistently has bit=1 for darker pixels
+      const fgLum = 0.299*PALETTE[fg][0] + 0.587*PALETTE[fg][1] + 0.114*PALETTE[fg][2];
+      const bgLum = 0.299*PALETTE[bg][0] + 0.587*PALETTE[bg][1] + 0.114*PALETTE[bg][2];
+      if (fgLum > bgLum) { const tmp=fg; fg=bg; bg=tmp; }
+
+      fgIdxArr[ci] = fg;
+      bgIdxArr[ci] = bg;
+    }
+  }
+
+  // Dithering: compute bit per pixel
+  let bitPerPixel;
+  if (ditherAlgo === 'floyd') {
+    bitPerPixel = ditherFloydSteinberg(styledPixels, fgIdxArr, bgIdxArr, ditherStr);
+  } else {
+    bitPerPixel = new Uint8Array(EXL_W*EXL_H);
+    for (let y = 0; y < EXL_H; y++) {
+      for (let x = 0; x < EXL_W; x++) {
+        const [r,g,b] = styledPixels[y*EXL_W+x];
+        const ci = Math.floor(y/CELL_H)*COLS + Math.floor(x/CELL_W);
+        if (ditherAlgo === 'bayer8')
+            bitPerPixel[y*EXL_W+x] = pixelToBit_bayer(r,g,b,fgIdxArr[ci],bgIdxArr[ci],x,y,ditherStr,BAYER8,8,63);
+          else if (ditherAlgo === 'bayer4')
+            bitPerPixel[y*EXL_W+x] = pixelToBit_bayer(r,g,b,fgIdxArr[ci],bgIdxArr[ci],x,y,ditherStr,BAYER4,4,15);
+          else
+            bitPerPixel[y*EXL_W+x] = pixelToBit_threshold(r,g,b,fgIdxArr[ci],bgIdxArr[ci]);
+      }
+    }
+  }
+
+  // Halftone library mode
+  if (charOpt === 'library') {
+    const pn = document.getElementById('pattern-preset').value;
+    const libEntries = computeHalftone(styledPixels, pn);
+    resultCells = libEntries.map((e, ci) => {
+      // Col 0 of each row MUST be alphamosaic (BAGC2/3) to set BG=white
+      // for all subsequent alphanumeric (BAGC0) cells in that row
+      let bagc = e.bagc;
+      let slot = e.slot;
+      let rep = e.rep;
+      if ((bagc === 0 || bagc === 1) && ci % 40 === 0) {
+        // Col 0 must be alphamosaic (BAGC2/3) for zone delimiter
+        let best={slot:0,bagc:2},bd=Infinity;
+        bagc2Chars.forEach((r2,s)=>{if(s===0x20)return;let d=0;for(let i=0;i<10;i++){let x=rep[i]^r2[i];while(x){d+=x&1;x>>=1;}}if(d<bd){bd=d;best={slot:s,bagc:2};}});
+        bagc3Chars.forEach((r2,s)=>{if(s===0x20)return;let d=0;for(let i=0;i<10;i++){let x=rep[i]^r2[i];while(x){d+=x&1;x>>=1;}}if(d<bd){bd=d;best={slot:s,bagc:3};}});
+        bagc=best.bagc; slot=best.slot; rep=(bagc===2?bagc2Chars:bagc3Chars)[slot];
+      }
+      const isAN = (bagc===0||bagc===1);
+      const cgBits = bagc===2?CG_BAGC2:bagc===3?CG_BAGC3:bagc===1?CG_BAGC1:CG_BAGC0;
+      const attr = isAN ? (0<<5)|cgBits : (0<<5)|cgBits|7;
+      return {fg:0, bg:7, origFg:0, origBg:7,
+        bitmapRows:[...rep], origBitmapRows:[...rep],
+        charSlot:slot, cgBits, attr};
+    });
+    const t1=performance.now();
+    const tot=bagc0Chars.length+bagc1Chars.length+bagc2Chars.length+bagc3Chars.length;
+    document.getElementById('slots-used').textContent=tot;
+    document.getElementById('stat-slots').textContent=tot;
+    document.getElementById('stat-bagc2').textContent=bagc2Chars.length;
+    document.getElementById('stat-bagc3').textContent=bagc3Chars.length;
+    document.getElementById('stat-time').textContent=Math.round(t1-t0);
+    document.getElementById('proc-status').textContent='RENDERED';
+    document.getElementById('proc-status').style.color='var(--green)';
+    document.getElementById('btn-reprocess').disabled=false;
+    renderPreview(); generateASM(); return;
+  }
+
+  // Build cell bitmaps (10 bytes each, bottom-row-first for TRAP 19)
+  const cells = [];
+  const charMap = new Map(); // bitmap key → {bagc, slot}
+  bagc0Chars = [];
+  bagc1Chars = [];
+  bagc2Chars = [];
+  bagc3Chars = [];
+
+  // Pre-collect all 1000 bitmaps
+  const allBitmaps = [];
+  for (let cy=0;cy<ROWS;cy++) for (let cx=0;cx<COLS;cx++) {
+    const bm=[];
+    for (let dy=0;dy<CELL_H;dy++) {
+      let byte=0;
+      for (let dx=0;dx<CELL_W;dx++)
+        if (bitPerPixel[(cy*CELL_H+dy)*EXL_W+cx*CELL_W+dx]) byte|=(0x80>>dx);
+      bm.push(byte);
+    }
+    allBitmaps.push(bm);
+  }
+  const numUnique = new Set(allBitmaps.map(bm=>bm.join(','))).size;
+
+  // Select best 256 representative bitmaps
+  let optimizedSlots = null;
+  try {
+    if (numUnique > MAX_SLOTS) {
+      if (charOpt === 'kmeans') {
+        optimizedSlots = optimizeCharSlots(allBitmaps, MAX_SLOTS);
+      } else {
+        optimizedSlots = selectByFrequency(allBitmaps, MAX_SLOTS);
+      }
+      const half = Math.ceil(optimizedSlots.length/2);
+      bagc2Chars = optimizedSlots.slice(0, Math.min(half, 127));
+      bagc3Chars = optimizedSlots.slice(Math.min(half, 127), Math.min(half, 127) + 127);
+      // Insert dummy at slot $20 so it's never a real image char
+      if (bagc2Chars.length > 0x20) bagc2Chars.splice(0x20, 0, new Array(10).fill(0));
+      if (bagc3Chars.length > 0x20) bagc3Chars.splice(0x20, 0, new Array(10).fill(0));
+    }
+  } catch(e) {
+    console.error('Slot selection error:', e.message, e.stack);
+  }
+
+  for (let cy = 0; cy < ROWS; cy++) {
+    for (let cx = 0; cx < COLS; cx++) {
+      const ci = cy*COLS+cx;
+      const fg = fgIdxArr[ci], bg = bgIdxArr[ci];
+
+      // Build 10-byte bitmap (top-row-first internally)
+      let bitmapRows = [];
+      for (let dy = 0; dy < CELL_H; dy++) {
+        let byte = 0;
+        for (let dx = 0; dx < CELL_W; dx++) {
+          if (bitPerPixel[(cy*CELL_H+dy)*EXL_W + cx*CELL_W+dx])
+            byte |= (0x80 >> dx);
+        }
+        bitmapRows.push(byte);
+      }
+
+      let charEntry;
+
+      if (optimizedSlots) {
+        // Pre-selected slots mode: always find nearest representative
+        // Use charMap as cache: key=original bitmap → entry
+        const key = bitmapRows.join(',');
+        charEntry = charMap.get(key);
+        if (!charEntry) {
+          charEntry = findNearestChar(bitmapRows);
+          charMap.set(key, charEntry);
+        }
+        // Always sync bitmapRows to stored representative (preview = hardware)
+        const rep = charEntry.bagc === 2 ? bagc2Chars[charEntry.slot] : bagc3Chars[charEntry.slot];
+        if (rep) bitmapRows = rep;
+      } else {
+        // Greedy mode: first occurrence claims the slot
+        const key = bitmapRows.join(',');
+        charEntry = charMap.get(key);
+        if (!charEntry) {
+          charEntry = safeAssignSlot(bagc2Chars, 2, bitmapRows)
+                   || safeAssignSlot(bagc3Chars, 3, bitmapRows)
+                   || findNearestChar(bitmapRows);
+          const rep = charEntry.bagc === 2 ? bagc2Chars[charEntry.slot] : bagc3Chars[charEntry.slot];
+          if (rep) bitmapRows = rep;
+          charMap.set(key, charEntry);
+        } else {
+          // Cache hit: sync bitmapRows to stored representative
+          const rep = charEntry.bagc === 2 ? bagc2Chars[charEntry.slot] : bagc3Chars[charEntry.slot];
+          if (rep) bitmapRows = rep;
+        }
+      }
+
+      // Attr byte: FG(7-5) | CG(4-3) | BG(2-0)
+      const cgBits = charEntry.bagc === 2 ? CG_BAGC2 : CG_BAGC3;
+      const attr = (fg << 5) | cgBits | bg;
+
+      cells.push({ fg, bg, origFg: fg, origBg: bg,
+        bitmapRows: [...bitmapRows],
+        origBitmapRows: [...bitmapRows],
+        charSlot: charEntry.slot, cgBits, attr });
+    }
+  }
+
+  resultCells = cells;
+  const t1 = performance.now();
+
+  // Update UI
+  const totalSlots = bagc2Chars.length + bagc3Chars.length;
+  document.getElementById('slots-used').textContent = totalSlots;
+  document.getElementById('stat-slots').textContent = totalSlots + (numUnique > MAX_SLOTS ? ' (k-means)' : '');
+  document.getElementById('stat-bagc2').textContent = bagc2Chars.length;
+  document.getElementById('stat-bagc3').textContent = bagc3Chars.length;
+  document.getElementById('stat-time').textContent = Math.round(t1-t0);
+  document.getElementById('proc-status').textContent = 'RENDERED';
+  document.getElementById('proc-status').style.color = 'var(--green)';
+
+  renderPreview();
+  generateASM();
+  document.getElementById('btn-reprocess').disabled = false;
+  // Re-apply any active color remap
+  const hasRemap = colorRemap.some((v,i) => v !== i);
+  if (hasRemap) applyColorRemap();
+}
+
+function findNearestInOptimized(bitmapRows, slots) {
+  // Search bagc2Chars and bagc3Chars directly (these ARE the optimized slots)
+  return findNearestChar(bitmapRows);
+}
+
+function findNearestChar(bitmapRows) {
+  let bestBagc=2, bestSlot=0, bestDist=Infinity;
+  bagc2Chars.forEach((rows, slot) => {
+    if (slot === 0x20) return; // skip MIXT delimiter slot
+    let dist=0;
+    for (let i=0;i<10;i++){let x=bitmapRows[i]^rows[i];while(x){dist+=x&1;x>>=1;}}
+    if (dist<bestDist){bestDist=dist;bestBagc=2;bestSlot=slot;}
+  });
+  bagc3Chars.forEach((rows, slot) => {
+    if (slot === 0x20) return; // skip MIXT delimiter slot
+    let dist=0;
+    for (let i=0;i<10;i++){let x=bitmapRows[i]^rows[i];while(x){dist+=x&1;x>>=1;}}
+    if (dist<bestDist){bestDist=dist;bestBagc=3;bestSlot=slot;}
+  });
+  return {bagc:bestBagc, slot:bestSlot};
+}
+
+// ============================================================================
+// Render preview to canvas
+// ============================================================================
+function renderPreview() {
+  const canvas = document.getElementById('preview-canvas');
+  const ctx = canvas.getContext('2d');
+  const img = ctx.createImageData(CANVAS_W, CANVAS_H);
+  const d = img.data;
+
+  for (let cy = 0; cy < ROWS; cy++) {
+    for (let cx = 0; cx < COLS; cx++) {
+      const cell = resultCells[cy*COLS+cx];
+      const [fr,fg2,fb] = PALETTE[cell.fg];
+      const [br,bg2,bb] = PALETTE[cell.bg];
+      // Use actual stored char bitmap (what hardware loads) not cell's original bitmap
+      let charBitmap;
+      if (cell.cgBits===CG_BAGC0) charBitmap=bagc0Chars[cell.charSlot];
+      else if (cell.cgBits===CG_BAGC1) charBitmap=bagc1Chars[cell.charSlot];
+      else if (cell.cgBits===CG_BAGC2) charBitmap=bagc2Chars[cell.charSlot];
+      else charBitmap=bagc3Chars[cell.charSlot];
+
+      for (let dy = 0; dy < CELL_H; dy++) {
+        const row = (charBitmap || cell.bitmapRows)[dy];
+        for (let dx = 0; dx < CELL_W; dx++) {
+          const bit = (row >> (7-dx)) & 1;
+          const [r,g,b] = bit ? [fr,fg2,fb] : [br,bg2,bb];
+          // 2× scale
+          for (let sy = 0; sy < CANVAS_SCALE; sy++) {
+            for (let sx = 0; sx < CANVAS_SCALE; sx++) {
+              const px = (cx*CELL_W+dx)*CANVAS_SCALE+sx;
+              const py = (cy*CELL_H+dy)*CANVAS_SCALE+sy;
+              const i = (py*CANVAS_W+px)*4;
+              d[i]=r; d[i+1]=g; d[i+2]=b; d[i+3]=255;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  ctx.putImageData(img, 0, 0);
+
+  // Show canvas
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('canvas-container').style.display = 'block';
+  document.getElementById('canvas-controls').style.display = 'flex';
+
+  drawGrid();
+}
+
+function drawGrid() {
+  const canvas = document.getElementById('grid-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+  ctx.strokeStyle = 'rgba(0,255,65,0.4)';
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x <= COLS; x++) {
+    ctx.beginPath();
+    ctx.moveTo(x*CELL_W*CANVAS_SCALE, 0);
+    ctx.lineTo(x*CELL_W*CANVAS_SCALE, CANVAS_H);
+    ctx.stroke();
+  }
+  for (let y = 0; y <= ROWS; y++) {
+    ctx.beginPath();
+    ctx.moveTo(0, y*CELL_H*CANVAS_SCALE);
+    ctx.lineTo(CANVAS_W, y*CELL_H*CANVAS_SCALE);
+    ctx.stroke();
+  }
+}
+
+// ============================================================================
+// ASM generation
+// ============================================================================
+function generateASM() {
+  // BAGC2 char data (TRAP 19 order = bottom-row-first)
+  let bagc2Asm = `; BAGC2 char definitions (${bagc2Chars.length} chars)\n`;
+  bagc2Asm += `; Load with:\n;   movd %BAGC2_DATA,TEMP3\n;   movd %BAGC2_ADR,TEMP2\n`;
+  bagc2Asm += `;   mov %$00,TEMP7\n;   mov %${bagc2Chars.length},TEMP4-1\n;   trap 19\n`;
+  bagc2Asm += `BAGC2_ADR    .equ    $0A00\n`;
+  bagc2Asm += `BAGC2_COUNT  .equ    ${bagc2Chars.length}\n\n`;
+  bagc2Asm += `BAGC2_DATA:\n`;
+  bagc2Chars.forEach((rows, i) => {
+    const trap19 = [...rows].reverse(); // bottom-row-first
+    bagc2Asm += `        .byte   ${trap19.map(b=>'$'+b.toString(16).padStart(2,'0').toUpperCase()).join(',')}  ; char $${i.toString(16).padStart(2,'0').toUpperCase()}\n`;
+  });
+
+  // BAGC3 char data
+  let bagc3Asm = `; BAGC3 char definitions (${bagc3Chars.length} chars)\n`;
+  bagc3Asm += `BAGC3_ADR    .equ    $0F00\n`;
+  bagc3Asm += `BAGC3_COUNT  .equ    ${bagc3Chars.length}\n\n`;
+  bagc3Asm += `BAGC3_DATA:\n`;
+  bagc3Chars.forEach((rows, i) => {
+    const trap19 = [...rows].reverse();
+    bagc3Asm += `        .byte   ${trap19.map(b=>'$'+b.toString(16).padStart(2,'0').toUpperCase()).join(',')}  ; char $${i.toString(16).padStart(2,'0').toUpperCase()}\n`;
+  });
+
+  // Screen data (attr + char per cell, row by row)
+  let screenAsm = `; Screen cell data (${ROWS} rows × ${COLS} cols = ${ROWS*COLS} cells)\n`;
+  screenAsm += `; Each cell: 1 attr byte + 1 char code byte\n`;
+  screenAsm += `; Write via TRAP 9 loop to screen VRAM at $7340\n\n`;
+  screenAsm += `SCREEN_DATA:\n`;
+  for (let cy = 0; cy < ROWS; cy++) {
+    screenAsm += `; Row ${cy}\n`;
+    for (let cx = 0; cx < COLS; cx += 8) {
+      const chunk = [];
+      for (let i = cx; i < Math.min(cx+8, COLS); i++) {
+        const cell = resultCells[cy*COLS+i];
+        chunk.push('$'+cell.attr.toString(16).padStart(2,'0').toUpperCase());
+        chunk.push('$'+cell.charSlot.toString(16).padStart(2,'0').toUpperCase());
+      }
+      screenAsm += `        .byte   ${chunk.join(',')}\n`;
+    }
+  }
+
+  // Full program
+  const fullAsm = generateFullProgram();
+
+  document.getElementById('asm-bagc2').value = bagc2Asm;
+  document.getElementById('asm-bagc3').value = bagc3Asm;
+  document.getElementById('asm-screen').value = screenAsm;
+  document.getElementById('asm-full').value = fullAsm;
+
+
+}
+
+function generateFullProgram() {
+  const s = collectSettings();
+  const now = new Date().toISOString().replace('T',' ').slice(0,19);
+  return `; ============================================================
+; EXELIMAGE — Generated by EXELIMAGE web app
+; EXL100 / TMS3556 image display program
+; ${bagc2Chars.length} BAGC2 chars + ${bagc3Chars.length} BAGC3 chars
+; ------------------------------------------------------------
+; EXELIMAGE_SETTINGS_BEGIN
+; Source:     ${s.filename || 'unknown'}
+; Generated:  ${now}
+; Style:      ${s.style}
+; ColorAlgo:  ${s.colorAlgo}
+; Dither:     ${s.ditherAlgo}
+; Brightness: ${s.brightness}
+; Contrast:   ${s.contrast}
+; Saturation: ${s.saturation}
+; Sharpen:    ${s.sharpen}
+; Dither%:    ${s.dither}
+; CharOpt:    ${s.charOpt}
+; ColorRemap: ${s.colorRemap.join(',')}
+; EXELIMAGE_SETTINGS_END
+; ============================================================
+
+#include "c:/jeux/emulateur/exl/tasm/H/7020.equ"
+#include "c:/jeux/emulateur/exl/tasm/H/3556.equ"
+
+SCR             .equ    $7340
+${(()=>{
+  const NL='\n';
+  const u4=bagc0Chars.length>0||bagc1Chars.length>0;
+  if(u4) return 'BAGC0_ADR       .equ    $0200  ; CG=$00, relocated'+NL
+    +'BAGC1_ADR       .equ    $0800  ; CG=$10'+NL
+    +'BAGC2_ADR       .equ    $0F00  ; CG=$08'+NL
+    +'BAGC3_ADR       .equ    $1400  ; CG=$18';
+  return 'BAGC2_ADR       .equ    $0A00'+NL+'BAGC3_ADR       .equ    $0F00';
+})()}
+
+        .org    $1000
+
+start:
+        dint
+        mov     %$58,B
+        ldsp
+        movp    P40,A
+        movp    P36,A
+        call    @init_vdp
+        #DEFINE Finit_vdp
+        eint
+
+        movd    %$0000,TEMP8
+        trap    13
+
+${(()=>{
+  const NL='\n';
+  const use4=(bagc0Chars.length>0||bagc1Chars.length>0);
+  function cfg(comment,adrHi,regHi,dc5){
+    let s='        ; '+comment+NL;
+    if(dc5) s+='        movp    %$05,P45'+NL+'        movp    %$E8,P45'+NL;
+    s+='        movp    %$01,P45'+NL+'        movp    %$FE,P45'+NL;
+    s+='        movp    %$02,P45'+NL+'        movp    %$'+adrHi+',P45'+NL;
+    s+='        movp    %$'+regHi+',P45'+NL+'        movp    %$00,P45'+NL+'        movp    %$00,P45'+NL;
+    return s;
+  }
+  if(use4) return NL
+    +cfg('Configure BAGC0 at $0200 (CG=$00, relocated from $0A00)','01','0B',false)+NL
+    +cfg('Configure BAGC1 at $0800 (CG=$10)','07','0C',false)+NL
+    +cfg('Configure BAGC2 at $0F00 (CG=$08)','0E','0D',false)+NL
+    +cfg('Configure BAGC3 at $1400 + DC5=1 (CG=$18)','13','0E',true);
+  return NL
+    +cfg('Configure BAGC2 at $0A00','09','0D',false)+NL
+    +cfg('Configure BAGC3 at $0F00 + DC5=1','0E','0E',true);
+})()}
+
+        ; Load char generators (guarded: skip if count = 0)
+${(()=>{
+  const NL='\n';
+  function lt(lbl,adr,cnt){
+    if(cnt<=0) return '';
+    return '        movd    %'+lbl+',TEMP3'+NL
+          +'        movd    %'+adr+',TEMP2'+NL
+          +'        mov     %$00,TEMP7'+NL
+          +'        mov     %'+cnt+',TEMP4-1'+NL
+          +'        trap    19'+NL+NL;
+  }
+  return lt('BAGC2_DATA','BAGC2_ADR',bagc2Chars.length)
+        +lt('BAGC3_DATA','BAGC3_ADR',bagc3Chars.length)
+        +lt('BAGC1_DATA','BAGC1_ADR',bagc1Chars.length)
+        +lt('BAGC0_DATA','BAGC0_ADR',bagc0Chars.length);
+})()}
+
+        ; Init MIXT API and screen
+        clr     A
+        sta     @BRJOY0
+        sta     @BRJOY0+1
+        sta     @BRTIME
+        sta     @BRTIME+1
+        call    @init_textapi
+        #DEFINE Finit_textapi
+        call    @set_25LINE
+        #DEFINE Fset_25LINE
+        movd    %SCR,R1
+        call    @set_vidbuf
+        #DEFINE Fset_vidbuf
+        movd    %SCR,R1
+        call    @set_screen_adr
+        #DEFINE Fset_screen_adr
+        movd    %screen_data2+24,R1
+        call    @set_MIXTMODE
+        #DEFINE Fset_MIXTMODE
+        ; set_window: X=0,Y=0, W=40,H=25, ATRCAR=BAGC2 blank ($08)
+        mov     %$08,A
+        movd    %$0000,TEMP1
+        movd    %$1928,TEMP2
+        call    @set_window
+        #DEFINE Fset_window
+
+        ; Set DC5=1 AFTER set_25LINE (which resets CM2=$C8 clearing DC5)
+        movp    %$05,P45
+        movp    %$E8,P45
+        ; BG color for BAGC0 cells set by BAGC2/3 zone delimiter at col 0 of each row
+
+        ; Write image data directly to VRAM (overwrites cls fill)
+        call    @write_screen
+
+halt:   dint
+        jmp     @halt
+
+; Write all 1000 cells to VRAM using TRAP 9 per row
+; MIXT mode: row stride = 82 bytes, first row at SCR=$7340
+write_screen:
+        ; Store data pointer in SRAM $C3D0(hi):$C3D1(lo)
+        mov     %SCREEN_DATA>>8,A
+        sta     @$C3D0
+        mov     %SCREEN_DATA&$FF,A
+        sta     @$C3D1
+        ; Use calcul_pointer approach: write cell by cell via TRAP 9
+        ; row=0..24, col=0..39 → calcul_pointer gives correct VRAM addr
+        ; Store row and col in SRAM
+        clr     A
+        sta     @$C3FC              ; current row
+ws_row:
+        clr     A
+        sta     @$C3FD              ; current col
+ws_col:
+        ; Set TEMP1-1:TEMP1 = VRAM address for (row, col)
+        ; Formula: SCR + row*82 + col*2
+        ; Use calcul_pointer: A=row, B=col, sets TEMP3=address
+        lda     @$C3FC
+        mov     A,TEMP3             ; save row for calcul_pointer param
+        lda     @$C3FD
+        mov     A,B                 ; B = col
+        lda     @$C3FC              ; A = row (calcul_pointer IN: A=row, B=col)
+        call    @calcul_pointer
+        #DEFINE Fcalcul_pointer
+        movd    TEMP3,TEMP1
+        ; Write attr+char from SCREEN_DATA
+        dint
+        trap    9
+        ; Read attr byte from SRAM data ptr $C3D0:$C3D1
+        lda     @$C3D0
+        mov     A,TEMP1-1
+        lda     @$C3D1
+        mov     A,TEMP1
+        lda     *TEMP1              ; A = attr byte
+        wvdp(A)
+        ; Advance ptr
+        lda     @$C3D1
+        inc     A
+        sta     @$C3D1
+        jnz     @ws_nc1
+        lda     @$C3D0
+        inc     A
+        sta     @$C3D0
+ws_nc1:
+        ; Read char byte
+        lda     @$C3D0
+        mov     A,TEMP1-1
+        lda     @$C3D1
+        mov     A,TEMP1
+        lda     *TEMP1
+        wvdp(A)
+        eint
+        ; Advance ptr
+        lda     @$C3D1
+        inc     A
+        sta     @$C3D1
+        jnz     @ws_nc2
+        lda     @$C3D0
+        inc     A
+        sta     @$C3D0
+ws_nc2:
+        ; Next col
+        lda     @$C3FD
+        inc     A
+        sta     @$C3FD
+        cmp     %40,A
+        jl      @ws_col
+        ; Next row
+        lda     @$C3FC
+        inc     A
+        sta     @$C3FC
+        cmp     %25,A
+        jl      @ws_row
+        rets
+
+screen_data2:
+        .byte   $00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+        .byte   $00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+        .byte   $00,$00,$00,$00,$00
+
+BAGC2_COUNT     .equ    ${bagc2Chars.length}
+BAGC3_COUNT     .equ    ${bagc3Chars.length}
+${bagc1Chars.length>0?'BAGC1_COUNT     .equ    '+bagc1Chars.length:''}
+${bagc0Chars.length>0?'BAGC0_COUNT     .equ    '+bagc0Chars.length:''}
+
+BAGC2_DATA:
+${bagc2Chars.map((rows,i)=>`        .byte   ${[...rows].reverse().map(b=>'$'+b.toString(16).padStart(2,'0').toUpperCase()).join(',')}  ; $${i.toString(16).padStart(2,'0').toUpperCase()}`).join('\n')}
+
+BAGC3_DATA:
+${bagc3Chars.map((rows,i)=>`        .byte   ${[...rows].reverse().map(b=>'$'+b.toString(16).padStart(2,'0').toUpperCase()).join(',')}  ; $${i.toString(16).padStart(2,'0').toUpperCase()}`).join('\n')}
+
+${bagc1Chars.length>0?'BAGC1_DATA:\n'+bagc1Chars.map((rows,i)=>`        .byte   ${[...rows].reverse().map(b=>'$'+b.toString(16).padStart(2,'0').toUpperCase()).join(',')}  ; $${i.toString(16).padStart(2,'0').toUpperCase()}`).join('\n'):''}
+
+${bagc0Chars.length>0?'BAGC0_DATA:\n'+bagc0Chars.map((rows,i)=>`        .byte   ${[...rows].reverse().map(b=>'$'+b.toString(16).padStart(2,'0').toUpperCase()).join(',')}  ; $${i.toString(16).padStart(2,'0').toUpperCase()}`).join('\n'):''}
+
+SCREEN_DATA:
+${(()=>{
+  if (!resultCells) return '';
+  let s='';
+  for(let cy=0;cy<ROWS;cy++){
+    s+='; Row '+cy+'\n';
+    for(let cx=0;cx<COLS;cx+=8){
+      const chunk=[];
+      for(let i=cx;i<Math.min(cx+8,COLS);i++){
+        const cell=resultCells[cy*COLS+i];
+        chunk.push('$'+cell.attr.toString(16).padStart(2,'0').toUpperCase());
+        chunk.push('$'+cell.charSlot.toString(16).padStart(2,'0').toUpperCase());
+      }
+      s+='        .byte   '+chunk.join(',')+'\n';
+    }
+  }
+  return s;
+})()}
+
+#include "mixt_api.asm"
+
+        .end
+`;
+}
+
+// ============================================================================
+// UI Events
+// ============================================================================
+
+// File input
+const fileInput = document.getElementById('file-input');
+const dropZone  = document.getElementById('drop-zone');
+
+// Browse button
+document.getElementById('btn-browse').addEventListener('click', () => fileInput.click());
+
+fileInput.addEventListener('change', e => {
+  if (e.target.files[0]) loadImage(e.target.files[0]);
+});
+
+// Drag and drop on the whole document
+document.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag'); });
+document.addEventListener('dragleave', e => {
+  if (e.relatedTarget === null) dropZone.classList.remove('drag');
+});
+document.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag');
+  if (e.dataTransfer.files[0]) loadImage(e.dataTransfer.files[0]);
+});
+
+// Also click on drop zone opens file picker
+dropZone.addEventListener('click', () => fileInput.click());
+
+// Process buttons
+document.getElementById('btn-process').addEventListener('click', processImage);
+document.getElementById('btn-reprocess').addEventListener('click', processImage);
+
+// Sliders
+['brightness','contrast','saturation','dither','sharpen'].forEach(id => {
+  const el = document.getElementById('p-'+id);
+  const vl = document.getElementById('v-'+id);
+  el.addEventListener('input', () => { vl.textContent = el.value; });
+});
+
+// Grid toggle
+const gridCanvas = document.getElementById('grid-canvas');
+document.getElementById('btn-grid').addEventListener('click', function() {
+  this.classList.toggle('active');
+  gridCanvas.classList.toggle('visible');
+});
+
+// Compare toggle (show original vs converted)
+let showingOriginal = false;
+document.getElementById('btn-compare').addEventListener('click', function() {
+  if (!srcImage || !resultCells) return;
+  this.classList.toggle('active');
+  showingOriginal = !showingOriginal;
+  if (showingOriginal) {
+    const canvas = document.getElementById('preview-canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(srcImage, 0, 0, CANVAS_W, CANVAS_H);
+  } else {
+    renderPreview();
+  }
+});
+
+// Zoom toggle
+let zoomed = false;
+document.getElementById('btn-zoom').addEventListener('click', function() {
+  zoomed = !zoomed;
+  const canvas = document.getElementById('preview-canvas');
+  const gcvs   = document.getElementById('grid-canvas');
+  if (zoomed) {
+    canvas.style.transform = 'scale(0.5)';
+    gcvs.style.transform   = 'scale(0.5)';
+    this.textContent = '⊕ 2×';
+  } else {
+    canvas.style.transform = '';
+    gcvs.style.transform   = '';
+    this.textContent = '⊕ 1×';
+  }
+});
+
+// Tabs
+document.querySelectorAll('.asm-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.asm-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.asm-pane').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-'+tab.dataset.tab).classList.add('active');
+  });
+});
+
+// Copy buttons
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const ta = document.getElementById(btn.dataset.target);
+    navigator.clipboard.writeText(ta.value).then(() => {
+      const orig = btn.textContent;
+      btn.textContent = '✓ COPIED';
+      setTimeout(() => btn.textContent = orig, 1500);
+    });
+  });
+});
+
+// Style preset — update description and reprocess
+document.getElementById('style-preset').addEventListener('change', function() {
+  document.getElementById('style-desc').textContent =
+    STYLE_DESCS[this.value] || '';
+  if (srcImageData) processImage();
+});
+
+// Algo selectors — auto reprocess if image loaded
+document.getElementById('char-opt').addEventListener('change', function() {
+  const pr=document.getElementById('preset-row');
+  if(pr) pr.style.display=this.value==='library'?'flex':'none';
+  if(srcImageData) processImage();
+});
+document.getElementById('pattern-preset').addEventListener('change', () => {
+  if(srcImageData && document.getElementById('char-opt').value==='library') processImage();
+});
+['algo-color','algo-dither','edge-mode'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('change', () => { if (srcImageData) processImage(); });
+});
+
+// Reset All Settings
+document.getElementById('btn-reset-all').addEventListener('click', () => {
+  applySettings(DEFAULT_SETTINGS);
+  if (srcImageData) processImage();
+});
+
+// Import settings from ASM text
+document.getElementById('btn-import-settings').addEventListener('click', () => {
+  const asmText = document.getElementById('asm-full').value;
+  if (!asmText) { alert('No ASM generated yet — process an image first, or paste ASM into the Full tab.'); return; }
+  const settings = parseSettingsFromASM(asmText);
+  if (!settings) { alert('No EXELIMAGE_SETTINGS found in this ASM file.'); return; }
+  applySettings(settings);
+  alert('Settings imported! Click PROCESS IMAGE to apply to the current image.');
+});
+
+// Parse settings from ASM comment block
+function parseSettingsFromASM(text) {
+  const start = text.indexOf('EXELIMAGE_SETTINGS_BEGIN');
+  const end   = text.indexOf('EXELIMAGE_SETTINGS_END');
+  if (start < 0 || end < 0) return null;
+  const block = text.slice(start, end);
+  const get = (key) => {
+    const m = block.match(new RegExp('^; ' + key + ':\s*(.+)$', 'm'));
+    return m ? m[1].trim() : undefined;
+  };
+  const remap = get('ColorRemap');
+  return {
+    filename:   get('Source'),
+    style:      get('Style'),
+    colorAlgo:  get('ColorAlgo'),
+    ditherAlgo: get('Dither'),
+    brightness: get('Brightness'),
+    contrast:   get('Contrast'),
+    saturation: get('Saturation'),
+    sharpen:    get('Sharpen'),
+    dither:     get('Dither%'),
+        charOpt:    get('CharOpt'),
+    colorRemap: remap ? remap.split(',').map(Number) : undefined,
+  };
+}
+
+// Init
+initRemapGrid();
+// ============================================================================
+// PIXEL EDITOR
+// ============================================================================
+
+let editorCells = null;       // deep copy of resultCells for editing
+let edSelectedCell = null;    // {cx, cy} currently selected
+let edZoom = 2;               // pixels per EXL pixel in screen view
+let edShowGrid = true;
+let edCurrentTool = 'pixel';
+let edFgColor = 7;            // white
+let edBgColor = 0;            // black
+let edUndoStack = [];
+let edRedoStack = [];
+let edModifiedCells = new Set();
+let edCurrentTab = 'full';
+
+const ED_CELL_SCALE = 20;     // pixels per EXL pixel in cell editor
+
+// ── Tab switching ────────────────────────────────────────────────────────────
+document.getElementById('tab-gen').addEventListener('click', () => {
+  document.getElementById('tab-gen').classList.add('active');
+  document.getElementById('tab-edit').classList.remove('active');
+  document.querySelector('main').style.display = 'grid';
+  document.getElementById('editor-section').style.display = 'none';
+});
+
+document.getElementById('tab-edit').addEventListener('click', () => {
+  document.getElementById('tab-edit').classList.add('active');
+  document.getElementById('tab-gen').classList.remove('active');
+  document.querySelector('main').style.display = 'none';
+  document.getElementById('editor-section').style.display = 'flex';
+  document.getElementById('editor-section').style.flexDirection = 'column';
+  if (resultCells && !editorCells) editorInit();
+  else if (editorCells) edRenderScreen();
+});
+
+// ── Init editor from resultCells ─────────────────────────────────────────────
+function editorInit() {
+  if (!resultCells) return;
+  // Deep copy
+  editorCells = resultCells.map(c => ({
+    ...c,
+    bitmapRows: c.bitmapRows.map(b => b),          // independent copy
+    origBitmapRows: c.origBitmapRows.map(b => b),  // independent copy
+  }));
+  edModifiedCells = new Set();
+  edUndoStack = []; edRedoStack = [];
+  edUpdateUndoButtons();
+  document.getElementById('ed-empty').style.display = 'none';
+  edRenderScreen();
+  edInitColorGrids();
+  edUpdateModifiedCount();
+  document.getElementById('ed-modified-count').textContent = '0';
+}
+
+// ── Color grids ──────────────────────────────────────────────────────────────
+function edInitColorGrids() {
+  ['fg','bg'].forEach(role => {
+    const grid = document.getElementById(`ed-${role}-grid`);
+    grid.innerHTML = '';
+    PALETTE.forEach(([r,g,b], i) => {
+      const btn = document.createElement('button');
+      btn.className = 'ed-color-btn';
+      btn.style.background = `rgb(${r},${g},${b})`;
+      btn.style.borderColor = i===0?'#333':'transparent';
+      btn.title = PAL_NAMES[i];
+      if (role==='fg' && i===edFgColor) btn.classList.add('active');
+      if (role==='bg' && i===edBgColor) btn.classList.add('active');
+      btn.addEventListener('click', () => {
+        if (role==='fg') { edFgColor=i; edHighlightColor('fg',i); }
+        else             { edBgColor=i; edHighlightColor('bg',i); }
+        if (edSelectedCell) edApplyColorChange();
+      });
+      grid.appendChild(btn);
+    });
+  });
+}
+
+function edHighlightColor(role, idx) {
+  document.querySelectorAll(`#ed-${role}-grid .ed-color-btn`).forEach((btn,i) => {
+    btn.classList.toggle('active', i===idx);
+  });
+}
+
+// ── Screen canvas render ─────────────────────────────────────────────────────
+function edRenderScreen() {
+  if (!editorCells) return;
+  const canvas = document.getElementById('ed-screen-canvas');
+  const pw = CELL_W * edZoom, ph = CELL_H * edZoom;
+  canvas.width  = COLS * pw;
+  canvas.height = ROWS * ph;
+  canvas.style.width  = canvas.width  + 'px';
+  canvas.style.height = canvas.height + 'px';
+
+  const ctx = canvas.getContext('2d');
+  const img = ctx.createImageData(canvas.width, canvas.height);
+  const d = img.data;
+
+  for (let cy=0; cy<ROWS; cy++) {
+    for (let cx=0; cx<COLS; cx++) {
+      const cell = editorCells[cy*COLS+cx];
+      const [fr,fg,fb] = PALETTE[cell.fg];
+      const [br,bg,bb] = PALETTE[cell.bg];
+      for (let dy=0; dy<CELL_H; dy++) {
+        const row = cell.bitmapRows[dy];
+        for (let dx=0; dx<CELL_W; dx++) {
+          const bit = (row>>(7-dx))&1;
+          const [r,g2,b2] = bit?[fr,fg,fb]:[br,bg,bb];
+          for (let sy=0; sy<edZoom; sy++) for (let sx=0; sx<edZoom; sx++) {
+            const px=(cx*CELL_W+dx)*edZoom+sx;
+            const py=(cy*CELL_H+dy)*edZoom+sy;
+            const i=(py*canvas.width+px)*4;
+            d[i]=r;d[i+1]=g2;d[i+2]=b2;d[i+3]=255;
+          }
+        }
+      }
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+
+  // Grid overlay
+  if (edShowGrid) {
+    ctx.strokeStyle = 'rgba(0,255,65,0.25)';
+    ctx.lineWidth = 1;
+    for (let x=0;x<=COLS;x++){ctx.beginPath();ctx.moveTo(x*pw,0);ctx.lineTo(x*pw,canvas.height);ctx.stroke();}
+    for (let y=0;y<=ROWS;y++){ctx.beginPath();ctx.moveTo(0,y*ph);ctx.lineTo(canvas.width,y*ph);ctx.stroke();}
+  }
+
+  // Highlight selected cell
+  if (edSelectedCell) {
+    const {cx,cy}=edSelectedCell;
+    ctx.strokeStyle='var(--amber,#ffaa00)';
+    ctx.lineWidth=2;
+    ctx.strokeRect(cx*pw+1,cy*ph+1,pw-2,ph-2);
+  }
+}
+
+// ── Screen canvas interaction ─────────────────────────────────────────────────
+const edScreenCanvas = document.getElementById('ed-screen-canvas');
+edScreenCanvas.addEventListener('click', e => {
+  const rect = edScreenCanvas.getBoundingClientRect();
+  const x = e.clientX - rect.left, y = e.clientY - rect.top;
+  const cx = Math.floor(x / (CELL_W*edZoom));
+  const cy = Math.floor(y / (CELL_H*edZoom));
+  if (cx<0||cx>=COLS||cy<0||cy>=ROWS) return;
+  edSelectCell(cx, cy);
+});
+
+function edSelectCell(cx, cy) {
+  edSelectedCell = {cx, cy};
+  const cell = editorCells[cy*COLS+cx];
+  // Sync FG/BG to cell's colors
+  edFgColor = cell.fg;
+  edBgColor = cell.bg;
+  edHighlightColor('fg', edFgColor);
+  edHighlightColor('bg', edBgColor);
+  document.getElementById('ed-cell-info').textContent =
+    `Col ${cx}, Row ${cy} · FG:${PAL_NAMES[cell.fg]} BG:${PAL_NAMES[cell.bg]}`;
+  edRenderCellCanvas();
+  edRenderScreen(); // re-highlight
+}
+
+// ── Cell canvas (enlarged 8×10 pixel editor) ─────────────────────────────────
+function edRenderCellCanvas() {
+  if (!edSelectedCell) return;
+  const {cx,cy} = edSelectedCell;
+  const cell = editorCells[cy*COLS+cx];
+  const canvas = document.getElementById('ed-cell-canvas');
+  const ctx = canvas.getContext('2d');
+  const [fr,fg,fb] = PALETTE[cell.fg];
+  const [br,bg,bb] = PALETTE[cell.bg];
+
+  for (let dy=0; dy<CELL_H; dy++) {
+    const row = cell.bitmapRows[dy];
+    for (let dx=0; dx<CELL_W; dx++) {
+      const bit=(row>>(7-dx))&1;
+      const [r,g2,b2]=bit?[fr,fg,fb]:[br,bg,bb];
+      ctx.fillStyle=`rgb(${r},${g2},${b2})`;
+      ctx.fillRect(dx*ED_CELL_SCALE, dy*ED_CELL_SCALE, ED_CELL_SCALE, ED_CELL_SCALE);
+    }
+  }
+  // Grid lines
+  ctx.strokeStyle='rgba(0,255,65,0.3)';
+  ctx.lineWidth=0.5;
+  for(let x=0;x<=CELL_W;x++){ctx.beginPath();ctx.moveTo(x*ED_CELL_SCALE,0);ctx.lineTo(x*ED_CELL_SCALE,canvas.height);ctx.stroke();}
+  for(let y=0;y<=CELL_H;y++){ctx.beginPath();ctx.moveTo(0,y*ED_CELL_SCALE);ctx.lineTo(canvas.width,y*ED_CELL_SCALE);ctx.stroke();}
+}
+
+// Cell canvas pixel click
+document.getElementById('ed-cell-canvas').addEventListener('click', e => {
+  if (!edSelectedCell) return;
+  const rect = e.target.getBoundingClientRect();
+  const dx = Math.floor((e.clientX-rect.left)/ED_CELL_SCALE);
+  const dy = Math.floor((e.clientY-rect.top)/ED_CELL_SCALE);
+  if (dx<0||dx>=CELL_W||dy<0||dy>=CELL_H) return;
+
+  const {cx,cy}=edSelectedCell;
+  const cell=editorCells[cy*COLS+cx];
+  edPushUndo(cx,cy);
+  // Toggle pixel
+  cell.bitmapRows[dy] ^= (0x80>>dx);
+  edMarkModified(cx,cy);
+  edRenderCellCanvas();
+  edRenderScreen();
+});
+
+// ── Apply color change to selected cell ─────────────────────────────────────
+function edApplyColorChange() {
+  if (!edSelectedCell) return;
+  const {cx,cy}=edSelectedCell;
+  const cell=editorCells[cy*COLS+cx];
+  edPushUndo(cx,cy);
+  cell.fg=edFgColor;
+  cell.bg=edBgColor;
+  cell.attr=(cell.fg<<5)|cell.cgBits|cell.bg;
+  document.getElementById('ed-cell-info').textContent =
+    `Col ${cx}, Row ${cy} · FG:${PAL_NAMES[cell.fg]} BG:${PAL_NAMES[cell.bg]}`;
+  edMarkModified(cx,cy);
+  edRenderCellCanvas();
+  edRenderScreen();
+}
+
+// ── Tools ─────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tool-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    edCurrentTool = btn.id.replace('ed-tool-','');
+    document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    if (!edSelectedCell) return;
+    const {cx,cy}=edSelectedCell;
+    const cell=editorCells[cy*COLS+cx];
+    if (edCurrentTool==='fill') {
+      edPushUndo(cx,cy);
+      cell.bitmapRows=Array(CELL_H).fill(0xFF);
+      edMarkModified(cx,cy); edRenderCellCanvas(); edRenderScreen();
+    } else if (edCurrentTool==='invert') {
+      edPushUndo(cx,cy);
+      cell.bitmapRows=cell.bitmapRows.map(b=>(~b)&0xFF);
+      edMarkModified(cx,cy); edRenderCellCanvas(); edRenderScreen();
+    } else if (edCurrentTool==='clear') {
+      edPushUndo(cx,cy);
+      cell.bitmapRows=Array(CELL_H).fill(0);
+      edMarkModified(cx,cy); edRenderCellCanvas(); edRenderScreen();
+    }
+    // pixel tool: handled by canvas click
+    // reset to pixel tool after one-shot tools
+    if (['fill','invert','clear'].includes(edCurrentTool)) {
+      setTimeout(()=>{
+        edCurrentTool='pixel';
+        document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
+        document.getElementById('ed-tool-pixel').classList.add('active');
+      },300);
+    }
+  });
+});
+
+// ── Undo/Redo ─────────────────────────────────────────────────────────────────
+function edPushUndo(cx,cy) {
+  const cell=editorCells[cy*COLS+cx];
+  edUndoStack.push({cx,cy,
+    bitmapRows:[...cell.bitmapRows],
+    fg:cell.fg, bg:cell.bg, attr:cell.attr
+  });
+  edRedoStack=[];
+  edUpdateUndoButtons();
+}
+
+document.getElementById('ed-undo').addEventListener('click', () => {
+  if (!edUndoStack.length) return;
+  const s=edUndoStack.pop();
+  const cell=editorCells[s.cy*COLS+s.cx];
+  edRedoStack.push({...s,
+    bitmapRows:[...cell.bitmapRows], fg:cell.fg, bg:cell.bg, attr:cell.attr});
+  cell.bitmapRows=[...s.bitmapRows];
+  cell.fg=s.fg; cell.bg=s.bg; cell.attr=s.attr;
+  edUpdateUndoButtons();
+  edRenderScreen();
+  if(edSelectedCell?.cx===s.cx&&edSelectedCell?.cy===s.cy) edRenderCellCanvas();
+});
+
+document.getElementById('ed-redo').addEventListener('click', () => {
+  if (!edRedoStack.length) return;
+  const s=edRedoStack.pop();
+  const cell=editorCells[s.cy*COLS+s.cx];
+  edUndoStack.push({...s,
+    bitmapRows:[...cell.bitmapRows], fg:cell.fg, bg:cell.bg, attr:cell.attr});
+  cell.bitmapRows=[...s.bitmapRows];
+  cell.fg=s.fg; cell.bg=s.bg; cell.attr=s.attr;
+  edUpdateUndoButtons();
+  edRenderScreen();
+  if(edSelectedCell?.cx===s.cx&&edSelectedCell?.cy===s.cy) edRenderCellCanvas();
+});
+
+function edUpdateUndoButtons() {
+  document.getElementById('ed-undo').disabled=edUndoStack.length===0;
+  document.getElementById('ed-redo').disabled=edRedoStack.length===0;
+}
+
+function edMarkModified(cx,cy) {
+  edModifiedCells.add(cy*COLS+cx);
+  edUpdateModifiedCount();
+}
+
+function edUpdateModifiedCount() {
+  document.getElementById('ed-modified-count').textContent = edModifiedCells.size;
+}
+
+// ── Zoom controls ─────────────────────────────────────────────────────────────
+document.getElementById('ed-zoom-in').addEventListener('click', () => {
+  if (edZoom<8) { edZoom*=2; document.getElementById('ed-zoom-label').textContent=edZoom+'×'; edRenderScreen(); }
+});
+document.getElementById('ed-zoom-out').addEventListener('click', () => {
+  if (edZoom>1) { edZoom=Math.max(1,edZoom/2); document.getElementById('ed-zoom-label').textContent=edZoom+'×'; edRenderScreen(); }
+});
+document.getElementById('ed-grid-toggle').addEventListener('click', function() {
+  edShowGrid=!edShowGrid;
+  this.classList.toggle('active', edShowGrid);
+  edRenderScreen();
+});
+
+// ── Reset to generated ────────────────────────────────────────────────────────
+document.getElementById('ed-btn-reset').addEventListener('click', () => {
+  if (!resultCells) return;
+  if (!confirm('Reset all edits to the generated image?')) return;
+  editorInit();
+});
+
+// ── Editor tabs ───────────────────────────────────────────────────────────────
+document.querySelectorAll('[data-edtab]').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('[data-edtab]').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    edCurrentTab = tab.dataset.edtab;
+  });
+});
+
+// ── ASM Export from editor ────────────────────────────────────────────────────
+document.getElementById('ed-btn-export').addEventListener('click', edGenerateASM);
+
+function edGenerateASM() {
+  if (!editorCells) return;
+
+  // Rebuild char table from edited cells
+  const edBagc2=[], edBagc3=[], edCharMap=new Map();
+  const edCells = editorCells.map(cell => {
+    const key=cell.bitmapRows.join(',');
+    let entry=edCharMap.get(key);
+    if (!entry) {
+      if (edBagc2.length<128) {
+        entry={bagc:2,slot:edBagc2.length};
+        edBagc2.push([...cell.bitmapRows]);
+      } else if (edBagc3.length<128) {
+        entry={bagc:3,slot:edBagc3.length};
+        edBagc3.push([...cell.bitmapRows]);
+      } else {
+        // nearest match
+        let best=null,bestD=Infinity;
+        for(const [k,v] of edCharMap){
+          const other=k.split(',').map(Number);
+          let d=0;
+          for(let i=0;i<10;i++){let x=cell.bitmapRows[i]^other[i];while(x){d+=x&1;x>>=1;}}
+          if(d<bestD){bestD=d;best=v;}
+        }
+        entry=best||{bagc:2,slot:0};
+      }
+      edCharMap.set(key,entry);
+    }
+    const cgBits=entry.bagc===2?CG_BAGC2:CG_BAGC3;
+    const attr=(cell.fg<<5)|cgBits|cell.bg;
+    return {...cell, charSlot:entry.slot, cgBits, attr};
+  });
+
+  document.getElementById('ed-slots-used').textContent=edBagc2.length+edBagc3.length;
+
+  const now=new Date().toISOString().replace('T',' ').slice(0,19);
+  let out='';
+
+  if (edCurrentTab==='screen'||edCurrentTab==='full') {
+    const screenLines=[`; SCREEN DATA (edited) — ${ROWS}×${COLS} cells
+SCREEN_DATA:`];
+    for(let cy=0;cy<ROWS;cy++){
+      let line=`; Row ${cy}
+        .byte   `;
+      for(let cx=0;cx<COLS;cx++){
+        const c=edCells[cy*COLS+cx];
+        line+=`$${c.attr.toString(16).padStart(2,'0').toUpperCase()},$${c.charSlot.toString(16).padStart(2,'0').toUpperCase()}`;
+        if(cx<COLS-1)line+=',';
+      }
+      screenLines.push(line);
+    }
+    if(edCurrentTab==='screen'){out=screenLines.join('\n');document.getElementById('ed-asm-out').value=out;return;}
+  }
+
+  if (edCurrentTab==='bagc2') {
+    out=`; BAGC2 DATA (edited) — ${edBagc2.length} chars
+BAGC2_DATA:
+`;
+    edBagc2.forEach((rows,i)=>{
+      out+=`        .byte   ${[...rows].reverse().map(b=>'$'+b.toString(16).padStart(2,'0').toUpperCase()).join(',')}  ; $${i.toString(16).padStart(2,'0').toUpperCase()}
+`;
+    });
+    document.getElementById('ed-asm-out').value=out; return;
+  }
+  if (edCurrentTab==='bagc3') {
+    out=`; BAGC3 DATA (edited) — ${edBagc3.length} chars
+BAGC3_DATA:
+`;
+    edBagc3.forEach((rows,i)=>{
+      out+=`        .byte   ${[...rows].reverse().map(b=>'$'+b.toString(16).padStart(2,'0').toUpperCase()).join(',')}  ; $${i.toString(16).padStart(2,'0').toUpperCase()}
+`;
+    });
+    document.getElementById('ed-asm-out').value=out; return;
+  }
+
+  // Full program
+  const s=collectSettings();
+  out=`; EXELIMAGE — Pixel-edited output
+; ${now}
+; Source: ${s.filename||'unknown'} (pixel-edited)
+; Original settings: Style=${s.style} Algo=${s.colorAlgo} Dither=${s.ditherAlgo}
+; Modified cells: ${edModifiedCells.size}
+;
+`;
+  out+=`; ============================================================
+
+`;
+  out+=`#include "c:/jeux/emulateur/exl/tasm/H/7020.equ"
+`;
+  out+=`#include "c:/jeux/emulateur/exl/tasm/H/3556.equ"
+
+`;
+  out+=`SCR             .equ    $7340
+`;
+  out+=`BAGC2_ADR       .equ    $0A00
+`;
+  out+=`BAGC3_ADR       .equ    $0F00
+`;
+  out+=`BAGC2_COUNT     .equ    ${edBagc2.length}
+`;
+  out+=`BAGC3_COUNT     .equ    ${edBagc3.length}
+
+`;
+  out+=`        .org    $1000
+
+start:
+`;
+  out+=`        dint
+        mov     %$58,B
+        ldsp
+`;
+  out+=`        movp    P40,A
+        movp    P36,A
+`;
+  out+=`        call    @init_vdp
+        #DEFINE Finit_vdp
+        eint
+
+`;
+  out+=`        movd    %$0000,TEMP8
+        trap    13
+
+`;
+  out+=`        ; BAGC2 at $0A00
+`;
+  out+=`        movp    %$01,P45
+        movp    %$FE,P45
+`;
+  out+=`        movp    %$02,P45
+        movp    %$09,P45
+`;
+  out+=`        movp    %$0D,P45
+        movp    %$00,P45
+        movp    %$00,P45
+
+`;
+  out+=`        ; BAGC3 at $0F00 + DC5=1
+`;
+  out+=`        movp    %$05,P45
+        movp    %$E8,P45
+`;
+  out+=`        movp    %$01,P45
+        movp    %$FE,P45
+`;
+  out+=`        movp    %$02,P45
+        movp    %$0E,P45
+`;
+  out+=`        movp    %$0E,P45
+        movp    %$00,P45
+        movp    %$00,P45
+
+`;
+  out+=`        movd    %BAGC2_DATA,TEMP3
+        movd    %BAGC2_ADR,TEMP2
+`;
+  out+=`        mov     %$00,TEMP7
+        mov     %BAGC2_COUNT,TEMP4-1
+        trap    19
+
+`;
+  out+=`        movd    %BAGC3_DATA,TEMP3
+        movd    %BAGC3_ADR,TEMP2
+`;
+  out+=`        mov     %$00,TEMP7
+        mov     %BAGC3_COUNT,TEMP4-1
+        trap    19
+
+`;
+  out+=`
+        ; Init MIXT API\n`;
+  out+=`        clr     A\n`;
+  out+=`        sta     @BRJOY0\n        sta     @BRJOY0+1\n        sta     @BRTIME\n        sta     @BRTIME+1\n`;
+  out+=`        call    @init_textapi\n        #DEFINE Finit_textapi\n`;
+  out+=`        call    @set_25LINE\n        #DEFINE Fset_25LINE\n`;
+  out+=`        movd    %SCR,R1\n        call    @set_vidbuf\n        #DEFINE Fset_vidbuf\n`;
+  out+=`        movd    %SCR,R1\n        call    @set_screen_adr\n        #DEFINE Fset_screen_adr\n`;
+  out+=`        movd    %screen_data2+24,R1\n        call    @set_MIXTMODE\n        #DEFINE Fset_MIXTMODE\n`;
+  out+=`        mov     %$08,A\n        movd    %$0000,TEMP1\n        movd    %$1928,TEMP2\n`;
+  out+=`        call    @set_window\n        #DEFINE Fset_window\n`;
+  out+=`        ; DC5=1 after set_25LINE to keep BAGC3 as alphamosaic\n`;
+  out+=`        movp    %$05,P45\n        movp    %$E8,P45\n`;
+  out+=`        call    @write_screen\n\nhalt:   dint
+        jmp     @halt\n\n`;
+  out+=`write_screen:\n`;
+  out+=`        mov     %SCREEN_DATA>>8,A\n        sta     @$C3D0\n`;
+  out+=`        mov     %SCREEN_DATA&$FF,A\n        sta     @$C3D1\n`;
+  out+=`        clr     A\n        sta     @$C3FC\n`;
+  out+=`ws_row:\n        clr     A\n        sta     @$C3FD\n`;
+  out+=`ws_col:\n`;
+  out+=`        lda     @$C3FC\n        mov     A,TEMP3\n`;
+  out+=`        lda     @$C3FD\n        mov     A,B\n`;
+  out+=`        lda     @$C3FC\n        call    @calcul_pointer\n        #DEFINE Fcalcul_pointer\n`;
+  out+=`        movd    TEMP3,TEMP1\n        dint\n        trap    9\n`;
+  out+=`        lda     @$C3D0\n        mov     A,TEMP1-1\n        lda     @$C3D1\n        mov     A,TEMP1\n`;
+  out+=`        lda     *TEMP1\n        wvdp(A)\n`;
+  out+=`        lda     @$C3D1\n        inc     A\n        sta     @$C3D1\n        jnz     @ws_nc1\n`;
+  out+=`        lda     @$C3D0\n        inc     A\n        sta     @$C3D0\n`;
+  out+=`ws_nc1:\n`;
+  out+=`        lda     @$C3D0\n        mov     A,TEMP1-1\n        lda     @$C3D1\n        mov     A,TEMP1\n`;
+  out+=`        lda     *TEMP1\n        wvdp(A)\n        eint\n`;
+  out+=`        lda     @$C3D1\n        inc     A\n        sta     @$C3D1\n        jnz     @ws_nc2\n`;
+  out+=`        lda     @$C3D0\n        inc     A\n        sta     @$C3D0\n`;
+  out+=`ws_nc2:\n`;
+  out+=`        lda     @$C3FD\n        inc     A\n        sta     @$C3FD\n        cmp     %40,A\n        jl      @ws_col\n`;
+  out+=`        lda     @$C3FC\n        inc     A\n        sta     @$C3FC\n        cmp     %25,A\n        jl      @ws_row\n`;
+  out+=`        rets\n\n`;
+  out+=`screen_data2:\n`;
+  out+=`        .byte   $00,$00,$00,$00,$00,$00,$00,$00,$00,$00\n`;
+  out+=`        .byte   $00,$00,$00,$00,$00,$00,$00,$00,$00,$00\n`;
+  out+=`        .byte   $00,$00,$00,$00,$00\n\n`;
+  out+=`BAGC2_DATA:
+`;
+  edBagc2.forEach((rows,i)=>{
+    out+=`        .byte   ${[...rows].reverse().map(b=>'$'+b.toString(16).padStart(2,'0').toUpperCase()).join(',')}  ; $${i.toString(16).padStart(2,'0').toUpperCase()}
+`;
+  });
+  out+=`
+BAGC3_DATA:
+`;
+  edBagc3.forEach((rows,i)=>{
+    out+=`        .byte   ${[...rows].reverse().map(b=>'$'+b.toString(16).padStart(2,'0').toUpperCase()).join(',')}  ; $${i.toString(16).padStart(2,'0').toUpperCase()}
+`;
+  });
+  out+=`
+SCREEN_DATA:
+`;
+  for(let cy=0;cy<ROWS;cy++){
+    out+=`; Row ${cy}
+        .byte   `;
+    for(let cx=0;cx<COLS;cx++){
+      const c=edCells[cy*COLS+cx];
+      out+=`$${c.attr.toString(16).padStart(2,'0').toUpperCase()},$${c.charSlot.toString(16).padStart(2,'0').toUpperCase()}`;
+      if(cx<COLS-1)out+=',';
+    }
+    out+='\n';
+  }
+  out+=`
+#include "mixt_api.asm"
+
+        .end
+`;
+  document.getElementById('ed-asm-out').value=out;
+}
+
+// Copy editor ASM
+document.getElementById('ed-copy-btn').addEventListener('click', () => {
+  const ta=document.getElementById('ed-asm-out');
+  navigator.clipboard.writeText(ta.value).then(()=>{
+    const btn=document.getElementById('ed-copy-btn');
+    const orig=btn.textContent; btn.textContent='✓ COPIED';
+    setTimeout(()=>btn.textContent=orig,1500);
+  });
+});
+
+// Update editor when generator produces new results
+const _origProcessImage = processImage;
+window._edProcessImageHook = () => {
+  if (editorCells && document.getElementById('editor-section').style.display!=='none') {
+    editorInit(); // refresh editor with new data
+  }
+};
+
+
+</script>
+</body>
+</html>
