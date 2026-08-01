@@ -4,7 +4,7 @@ réalisé avec deux outils :
 EXELIMAGE => transforme une image en code asm, couleur ou noir & blanc
 exemple de resultat popintro.asm / .rom
 
-EXLCHAR => création d'animation en mode semi graphique, charger les fichier exlchar_session.json pour un exemple d'animation, exemple de resultat popengine.asm / .rom
+EXLCHAR => création d'animation en mode semi graphique, charger le fichier exlchar_session.json pour un exemple d'animation, exemple de resultat popengine.asm / .rom
 
 la vitesse de l'animation est environ 2x fois plus rapide sur un exeltel que dans l'émulateur DCexel
 
